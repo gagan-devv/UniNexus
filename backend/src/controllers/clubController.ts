@@ -80,12 +80,16 @@ const updateClub = async (req:AuthenticatedRequest , res : Response): Promise<vo
     }
 }
 const deleteClub = async ( req : AuthenticatedRequest , res : Response): Promise<void> =>{
-    const club = await ClubProfile.findByIdAndDelete({user : req.user?._id});
-    if(!club){
-        res.status(404).json({'Message': 'Club not found'});
-        return;
-    }else{
-        res.json({'Message' : 'Club deleted successfully'});
+    try{
+        const club = await ClubProfile.findOneAndDelete({user : req.user?._id});
+        if(!club){
+            res.status(404).json({'Message': 'Club not found'});
+            return;
+        }else{
+            res.json({'Message' : 'Club deleted successfully'});
+        }
+    }catch(error){
+        res.status(500).json({'Message' : 'Server error'});
     }
 }
 
