@@ -1,10 +1,53 @@
 node_modules/
 .env
+.env.local
+.env.development
+.env.test
+.env.production
 .DS_Store
 dist/
+build/
+coverage/
 .vscode/
+.idea/
 
-frontend/node_modules/
+# Backend specific
 backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/.env
+backend/.env.local
+backend/.env.test
+backend/.env.production
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.test
+frontend/.env.production
+
+# Project specific
 project-structure.txt
 UniNexus - Features.pdf
+.kiro/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache

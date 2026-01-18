@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { logger } from '../utils/logger';
 
 const generateToken = (id: string) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || '', {
@@ -12,24 +13,30 @@ const generateToken = (id: string) => {
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
     try
     {
+        logger.debug('Registration attempt:', req.body);
         const { username, email, password, role } = req.body;
 
         if(!username || !email || !password)
         {
+            logger.warn('Missing required fields');
             res.status(400).json({ message: 'Please fill in all fields.' });
             return;
         }
 
+        logger.debug('Checking if user exists...');
         const userExists = await User.findOne({ email });
         if(userExists)
         {
+            logger.warn('User already exists');
             res.status(400).json({ message: 'User already exists.' });
             return;
         }
 
+        logger.debug('Hashing password...');
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        logger.debug('Creating user...');
         const user = await User.create({
             username,
             email,
@@ -39,6 +46,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
         if(user)
         {
+            logger.info('User created successfully');
             res.status(201).json({
                 _id: user.id,
                 username: user.username,
@@ -49,12 +57,13 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
         }
         else
         {
+            logger.error('Failed to create user');
             res.status(500).json({ message: 'Invalid user data.' });
         }
     }
     catch (error)
     {
-        console.error(error);
+        logger.error('Registration error:', error instanceof Error ? error : String(error));
         res.status(500).json({ message: 'Internal Server Error.' });
     }
 };
@@ -89,7 +98,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     } 
     catch (error) 
     {
-        console.error(error);
+        logger.error('Login error:', error instanceof Error ? error : String(error));
         res.status(500).json({ message: 'Internal Server Error.' });
     }
-}
+};

@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document } from 'mongoose';
 
 interface IEvent extends Document {
     _id: mongoose.Types.ObjectId;
@@ -32,6 +32,6 @@ const EventSchema = new Schema<IEvent>({
     endTime: { type: Date, required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
-})
+});
 
 export const Event = mongoose.model<IEvent>('Event', EventSchema);
