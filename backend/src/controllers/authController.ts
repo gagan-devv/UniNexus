@@ -48,7 +48,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
         logger.debug('Creating user...');
         
         // Filter out undefined values for Mongoose
-        const cleanUserData: any = {
+        const cleanUserData: Record<string, unknown> = {
             username: userData.username,
             email: userData.email,
             password: userData.password,

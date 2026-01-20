@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import ClubRoutes from "./routes/ClubRoutes";
 import eventRoutes from "./routes/eventRoutes";
+import rsvpRoutes from "./routes/rsvpRoutes";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clubs", ClubRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/rsvp", rsvpRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("UniNexus API is running...");

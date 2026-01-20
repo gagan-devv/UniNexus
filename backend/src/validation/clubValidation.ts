@@ -39,7 +39,7 @@ export interface UpdateClubProfileInput {
 }
 
 // URL validation regex
-const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
 
 // Social media specific URL patterns
 const socialMediaPatterns = {
@@ -129,8 +129,8 @@ export const validateCreateClubProfileInput = (input: unknown): { isValid: boole
     }
     
     if (inputObj.contactPhone && typeof inputObj.contactPhone === 'string') {
-        const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-        const cleanPhone = inputObj.contactPhone.replace(/[\s\-\(\)]/g, '');
+        const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
+        const cleanPhone = inputObj.contactPhone.replace(/[\s\-()]/g, '');
         if (!phoneRegex.test(cleanPhone)) {
             errors.push('Please enter a valid phone number');
         }
@@ -145,7 +145,7 @@ export const validateCreateClubProfileInput = (input: unknown): { isValid: boole
                 const pattern = socialMediaPatterns[platform as keyof typeof socialMediaPatterns];
                 if (platform === 'website') {
                     if (!urlRegex.test(url)) {
-                        errors.push(`Website URL must be a valid URL`);
+                        errors.push('Website URL must be a valid URL');
                     }
                 } else if (pattern && !pattern.test(url)) {
                     errors.push(`${platform} URL must be a valid ${platform} URL`);
@@ -261,8 +261,8 @@ export const validateUpdateClubProfileInput = (input: unknown): { isValid: boole
         if (typeof inputObj.contactPhone !== 'string') {
             errors.push('Contact phone must be a string');
         } else if (inputObj.contactPhone.trim()) {
-            const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-            const cleanPhone = inputObj.contactPhone.replace(/[\s\-\(\)]/g, '');
+            const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
+            const cleanPhone = inputObj.contactPhone.replace(/[\s\-()]/g, '');
             if (!phoneRegex.test(cleanPhone)) {
                 errors.push('Please enter a valid phone number');
             }
@@ -281,7 +281,7 @@ export const validateUpdateClubProfileInput = (input: unknown): { isValid: boole
                     const pattern = socialMediaPatterns[platform as keyof typeof socialMediaPatterns];
                     if (platform === 'website') {
                         if (!urlRegex.test(url)) {
-                            errors.push(`Website URL must be a valid URL`);
+                            errors.push('Website URL must be a valid URL');
                         }
                     } else if (pattern && !pattern.test(url)) {
                         errors.push(`${platform} URL must be a valid ${platform} URL`);

@@ -27,7 +27,7 @@ export interface IClubProfile extends Document {
 }
 
 // URL validation regex
-const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
 
 // Social media specific URL patterns
 const socialMediaPatterns = {
@@ -205,7 +205,7 @@ const ClubProfileSchema = new Schema<IClubProfile>({
         trim: true,
         validate: {
             validator: function(v: string) {
-                return !v || /^[\+]?[1-9][\d]{0,15}$/.test(v.replace(/[\s\-\(\)]/g, ''));
+                return !v || /^[+]?[1-9][\d]{0,15}$/.test(v.replace(/[\s\-()]/g, ''));
             },
             message: 'Please enter a valid phone number'
         }
