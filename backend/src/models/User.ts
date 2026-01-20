@@ -53,7 +53,6 @@ const UserSchema = new Schema<IUser>({
     username: { 
         type: String, 
         required: true, 
-        unique: true,
         trim: true,
         minlength: 3,
         maxlength: 30
@@ -61,7 +60,6 @@ const UserSchema = new Schema<IUser>({
     email: { 
         type: String, 
         required: true, 
-        unique: true,
         trim: true,
         lowercase: true,
         match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
@@ -138,8 +136,16 @@ UserSchema.pre('save', async function() {
 
 });
 
-UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-    return bcrypt.compare(candidatePassword, this.password);
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ username: 1 }, { unique: true });
+UserSchema.index({ role: 1 });
+
+UserSchema.virtual('fullName').get(function() {
+    return `${this.firstName || ''} ${this.lastName || ''}`.trim();
+});
+
+UserSchema.methods.comparePassword = async function(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.password);
 };
 
 export const User = mongoose.model<IUser>('User', UserSchema);
