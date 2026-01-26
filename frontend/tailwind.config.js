@@ -4,40 +4,35 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Important for the dark theme
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        "primary": "#00a385",
-        "background-light": "#ffffff",
-        "background-dark": "#0a0c0c",
-        "container-dark": "#161b1b",
-        "nested-dark": "#1f2626",
-        "card-dark": "#161b1b",
-        "border-dark": "#1f2626",
-        "input-dark": "#1f2626",
-        "off-white": "#eef2f2",
-        "accent-yellow": "#FCDA6D",
-        "yellow-accent": "#FCDA6D",
-        "deep-indigo": "#5c6bb1",
-        "indigo-custom": "#5c6bb1"
+        primary: {
+          DEFAULT: '#6c47ff',
+          dark: '#5a3ae6',
+        },
+        'background-light': '#f8fafc',
+        'background-dark': '#111217',
+        'card-dark': '#1d1736',
+        'input-border': '#3a2e6b',
       },
       fontFamily: {
-        "display": ["Space Grotesk", "sans-serif"],
-        "sans": ["Noto Sans", "sans-serif"]
+        display: ['Space Grotesk', 'sans-serif'],
+        sans: ['Space Grotesk', 'sans-serif'],
       },
       borderRadius: {
-        "DEFAULT": "0.5rem",
-        "lg": "1rem",
-        "xl": "1.5rem",
-        "full": "9999px"
+        DEFAULT: '0.5rem',
+        lg: '1rem',
+        xl: '1.5rem',
+        '2xl': '2rem',
+        '3xl': '3rem',
+        full: '9999px',
       },
-      backgroundImage: {
-        // You can add the gradient overlays here if you want to reuse them
-      }
+      animation: {
+        'spin-slow': 'spin 3s linear infinite',
+      },
     },
   },
-  plugins: [
-    // require('@tailwindcss/forms'), // Uncomment if you have installed this plugin
-  ],
+  plugins: [],
 }

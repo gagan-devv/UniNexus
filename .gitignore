@@ -33,6 +33,7 @@ frontend/.env.production
 project-structure.txt
 UniNexus - Features.pdf
 .kiro/
+UniNexus - Web/
 
 # Logs
 *.log

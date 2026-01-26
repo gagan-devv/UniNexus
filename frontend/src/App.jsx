@@ -1,37 +1,122 @@
-import { Routes, Route } from 'react-router-dom';
-import Dashboard1 from './pages/ClubManagement/Dashboard1';
-import Dashboard2 from './pages/ClubManagement/Dashboard2';
-import Discussion1Alt from './pages/community_discussion_1/Discussion1Alt';
-import Discussion2 from './pages/community_discussion_2/Discussion2';
-import Search1 from './pages/semantic_search_results_discovery_1/Search1';
-import Search2 from './pages/semantic_search_results_discovery_2/Search2';
-import Events1 from './pages/unified_event_feed_&_discovery_1/Events1';
-import Events2 from './pages/unified_event_feed_&_discovery_2/Events2';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import Layout from './components/layout/Layout';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import Home from './pages/Home';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import './App.css';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard1 />} />
-      <Route path="/dashboard1" element={<Dashboard1 />} />
-      <Route path="/dashboard2" element={<Dashboard2 />} />
-      <Route path="/discussion1" element={<Discussion1Alt />} />
-      <Route path="/discussion2" element={<Discussion2 />} />
-      <Route path="/search1" element={<Search1 />} />
-      <Route path="/search2" element={<Search2 />} />
-      <Route path="/events1" element={<Events1 />} />
-      <Route path="/events2" element={<Events2 />} />
-      {/* Legacy routes for backward compatibility */}
-      <Route path="/club-management-dashboard-1" element={<Dashboard1 />} />
-      <Route path="/club-dashboard-1" element={<Dashboard1 />} />
-      <Route path="/club-dashboard-2" element={<Dashboard2 />} />
-      <Route path="/community" element={<Discussion1Alt />} />
-      <Route path="/community-discussion-ai-summarizer-1" element={<Discussion1Alt />} />
-      <Route path="/community-discussion-ai-summarizer-2" element={<Discussion2 />} />
-      <Route path="/semantic-search-results-discovery-1" element={<Search1 />} />
-      <Route path="/semantic-search-results-discovery-2" element={<Search2 />} />
-      <Route path="/unified-event-feed-discovery-1" element={<Events1 />} />
-      <Route path="/unified-event-feed-discovery-2" element={<Events2 />} />
-    </Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Modern Login Route - Full Screen */}
+            <Route 
+              path="/login" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Login />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Modern Register Route - Full Screen */}
+            <Route 
+              path="/register" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Register />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* All other routes with Layout */}
+            <Route path="/*" element={
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  
+                  {/* Protected Routes */}
+                  <Route 
+                    path="/events" 
+                    element={
+                      <ProtectedRoute>
+                        <div className="text-center py-12">
+                          <h1 className="text-2xl font-bold">Events Page</h1>
+                          <p className="text-gray-600 mt-2">Coming soon...</p>
+                        </div>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/clubs" 
+                    element={
+                      <ProtectedRoute>
+                        <div className="text-center py-12">
+                          <h1 className="text-2xl font-bold">Clubs Page</h1>
+                          <p className="text-gray-600 mt-2">Coming soon...</p>
+                        </div>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/profile" 
+                    element={
+                      <ProtectedRoute>
+                        <div className="text-center py-12">
+                          <h1 className="text-2xl font-bold">Profile Page</h1>
+                          <p className="text-gray-600 mt-2">Coming soon...</p>
+                        </div>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/my-club" 
+                    element={
+                      <ProtectedRoute>
+                        <div className="text-center py-12">
+                          <h1 className="text-2xl font-bold">My Club Page</h1>
+                          <p className="text-gray-600 mt-2">Coming soon...</p>
+                        </div>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/my-rsvps" 
+                    element={
+                      <ProtectedRoute>
+                        <div className="text-center py-12">
+                          <h1 className="text-2xl font-bold">My RSVPs Page</h1>
+                          <p className="text-gray-600 mt-2">Coming soon...</p>
+                        </div>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* 404 Route */}
+                  <Route 
+                    path="*" 
+                    element={
+                      <div className="text-center py-12">
+                        <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
+                        <p className="text-gray-600 mb-8">Page not found</p>
+                        <a href="/" className="text-blue-600 hover:text-blue-700 font-medium">
+                          Go back home
+                        </a>
+                      </div>
+                    } 
+                  />
+                </Routes>
+              </Layout>
+            } />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,79 +1,247 @@
-import { Response,Request } from 'express';
-import {Event} from '../models/Event';
+import { Response, Request } from 'express';
+import { Event } from '../models/Event';
+import { RSVP } from '../models/RSVP';
 import { IUser } from '../models/User';
 import { ClubProfile } from '../models/ClubProfile';
+import { logger } from '../utils/logger';
+import { validateCreateEventInput, validateUpdateEventInput } from '../validation/eventValidation';
 
-interface AuthenticatedRequest extends Request{
+interface AuthenticatedRequest extends Request {
     user?: IUser;
 }
+
 const createEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try{
-        if(!req.user)
-        {
-            res.status(401).json({'Message':'User not authenticated'});
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
             return;
         }
-        const club = await ClubProfile.findOne({user : req.user._id});
-        if(!club){
-            res.status(404).json({'Message':'You must have a registered club to create events'});
+
+        const validation = validateCreateEventInput(req.body);
+        if (!validation.isValid) {
+            res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: validation.errors
+            });
             return;
         }
-        const {title,description,emeddings,posterUrl,location,category,startTime,endTime,createdAt,updatedAt} = req.body;
+
+        const club = await ClubProfile.findOne({ user: req.user._id });
+        if (!club) {
+            res.status(403).json({
+                success: false,
+                message: 'You must have a registered club to create events'
+            });
+            return;
+        }
+
+        const eventData = validation.data!;
         const newEvent = await Event.create({
-            organizer: club._id,
-            title,
-            description,
-            emeddings,
-            posterUrl,
-            location,
-            category,
-            startTime,
-            endTime,
-            createdAt,
-            updatedAt
+            ...eventData,
+            organizer: club._id
         });
-        res.status(201).json(newEvent);
-    }catch{
-        res.status(500).json({'Message':'server Error'});
+
+        const populatedEvent = await Event.findById(newEvent._id).populate('organizer', 'name email');
+
+        res.status(201).json({
+            success: true,
+            message: 'Event created successfully',
+            data: populatedEvent
+        });
+    } catch (error) {
+        logger.error('Event creation error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 };
+
 const getAllEvents = async (req: Request, res: Response): Promise<void> => {
-    try{
-        const events = await Event.find().populate('organizer','clubName');
-        res.json(events);
-    }catch{
-        res.status(500).json({'Message':'server Error'});
-    }
-};
-const getEventById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try{
-        const event = await Event.findById(req.params.id).populate('organizer','clubName');
-        if(!event){
-            res.status(404).json({'Message':'Event notfound'});
-            return;
-        }else{
-            res.json(event);
+    try {
+        const { category, limit = 20, offset = 0, upcoming = 'true' } = req.query;
+        
+        const query: Record<string, unknown> = {};
+        
+        if (category && typeof category === 'string') {
+            query.category = category;
         }
-    }catch{
-        res.status(500).json({'Message':'server Error'});
+        
+        if (upcoming === 'true') {
+            query.startTime = { $gte: new Date() };
+        }
+        
+        query.isPublic = true;
+
+        const events = await Event.find(query)
+            .populate('organizer', 'name email logoUrl')
+            .sort({ startTime: 1 })
+            .limit(Number(limit))
+            .skip(Number(offset));
+
+        const total = await Event.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: {
+                events,
+                pagination: {
+                    total,
+                    limit: Number(limit),
+                    offset: Number(offset),
+                    hasMore: Number(offset) + Number(limit) < total
+                }
+            }
+        });
+    } catch (error) {
+        logger.error('Get all events error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 };
+
+const getEventById = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const event = await Event.findById(req.params.id)
+            .populate('organizer', 'name email logoUrl isVerified');
+        
+        if (!event) {
+            res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+            return;
+        }
+
+        if (!event.isPublic) {
+            res.status(403).json({
+                success: false,
+                message: 'This event is private'
+            });
+            return;
+        }
+
+        const rsvpCounts = await RSVP.aggregate([
+            { $match: { event: event._id } },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
+
+        const counts = {
+            going: 0,
+            interested: 0,
+            not_going: 0,
+            waitlist: 0
+        };
+
+        rsvpCounts.forEach(item => {
+            counts[item._id as keyof typeof counts] = item.count;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                ...event.toObject(),
+                rsvpCounts: counts
+            }
+        });
+    } catch (error) {
+        logger.error('Get event by ID error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
 const updateEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try{
-        const updatedEvent = await Event.findByIdAndUpdate(req.params.id,req.body,{new:true});
-        res.json(updatedEvent);
-    }catch{
-        res.status(500).json({'Message':'server Error'});
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const validation = validateUpdateEventInput(req.body);
+        if (!validation.isValid) {
+            res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: validation.errors
+            });
+            return;
+        }
+
+        const updatedEvent = await Event.findByIdAndUpdate(
+            req.params.id,
+            validation.data,
+            { new: true, runValidators: true }
+        ).populate('organizer', 'name email');
+
+        if (!updatedEvent) {
+            res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            message: 'Event updated successfully',
+            data: updatedEvent
+        });
+    } catch (error) {
+        logger.error('Update event error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 };
+
 const deleteEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try{
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const event = await Event.findById(req.params.id);
+        if (!event) {
+            res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+            return;
+        }
+
+        await RSVP.deleteMany({ event: event._id });
         await Event.findByIdAndDelete(req.params.id);
-        res.json({'Message':'Event Deleted Successfully'});
-    }catch{
-        res.status(500).json({'Message':'server Error'});
+
+        res.json({
+            success: true,
+            message: 'Event deleted successfully'
+        });
+    } catch (error) {
+        logger.error('Delete event error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 };
+
 export {
     createEvent,
     getAllEvents,

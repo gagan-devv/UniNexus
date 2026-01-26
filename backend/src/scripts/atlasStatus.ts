@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
 import mongoose from 'mongoose';
-import https from 'https';
 import dns from 'dns';
 import { promisify } from 'util';
+import { URL } from 'url';
 
 dotenv.config();
 
