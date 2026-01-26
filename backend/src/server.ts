@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from './config/db';
 import { connectRedis, disconnectRedis, checkRedisHealth } from './config/redis';
+import { initializeS3, checkS3Connection } from './config/s3';
 import { logger } from './utils/logger';
 
 import authRoutes from "./routes/authRoutes";
@@ -42,12 +43,14 @@ app.get("/", (req: Request, res: Response) => {
 
 app.get("/api/health", async (req: Request, res: Response) => {
   const redisHealthy = await checkRedisHealth();
+  const s3Healthy = await checkS3Connection();
   
   res.json({ 
     message: "Connected! Backend is running.",
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    redis: redisHealthy ? 'connected' : 'disconnected'
+    redis: redisHealthy ? 'connected' : 'disconnected',
+    s3: s3Healthy ? 'connected' : 'not configured'
   });
 });
 
@@ -58,6 +61,9 @@ const startServer = async (): Promise<void> => {
     
     // Connect to Redis (non-blocking - app continues if Redis fails)
     await connectRedis();
+    
+    // Initialize S3 client (non-blocking - app continues if S3 fails)
+    initializeS3();
     
     // Then start server
     app.listen(PORT, () => {
