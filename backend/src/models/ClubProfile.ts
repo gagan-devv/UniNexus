@@ -6,6 +6,10 @@ export interface IClubProfile extends Document {
     description: string;
     email: string;
     logoUrl?: string;
+    logo?: {
+        s3Key: string;
+        uploadedAt: Date;
+    };
     socialLinks: {
         instagram?: string;
         linkedin?: string;
@@ -76,6 +80,15 @@ const ClubProfileSchema = new Schema<IClubProfile>({
                 return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(v);
             },
             message: 'Logo URL must be a valid image URL (jpg, jpeg, png, gif, webp, svg)'
+        }
+    },
+    logo: {
+        s3Key: {
+            type: String,
+            trim: true
+        },
+        uploadedAt: {
+            type: Date
         }
     },
     socialLinks: {

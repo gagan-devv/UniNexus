@@ -13,6 +13,10 @@ export interface IUser extends Document {
     major?: string;
     bio?: string;
     avatarUrl?: string;
+    profilePicture?: {
+        s3Key: string;
+        uploadedAt: Date;
+    };
     refreshToken?: string;
     createdAt: Date;
     updatedAt: Date;
@@ -107,6 +111,15 @@ const UserSchema = new Schema<IUser>({
         type: String,
         trim: true,
         match: [/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i, 'Please enter a valid image URL']
+    },
+    profilePicture: {
+        s3Key: {
+            type: String,
+            trim: true
+        },
+        uploadedAt: {
+            type: Date
+        }
     },
     refreshToken: {
         type: String

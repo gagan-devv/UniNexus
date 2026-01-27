@@ -6,6 +6,10 @@ export interface IEvent extends Document {
     description: string;
     embeddings?: number[];
     posterUrl?: string;
+    poster?: {
+        s3Key: string;
+        uploadedAt: Date;
+    };
     location: string;
     category: 'Tech' | 'Cultural' | 'Sports' | 'Workshop' | 'Seminar' | 'Other';
     organizer: mongoose.Types.ObjectId;
@@ -51,6 +55,15 @@ const EventSchema = new Schema<IEvent>({
             },
             message: 'Poster URL must be a valid image URL',
         },
+    },
+    poster: {
+        s3Key: {
+            type: String,
+            trim: true
+        },
+        uploadedAt: {
+            type: Date
+        }
     },
     location: {
         type: String,

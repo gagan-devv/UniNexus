@@ -27,31 +27,34 @@ const upload = multer({
 
 // Middleware for single file upload
 export const uploadSingle = (fieldName: string) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const uploadHandler = upload.single(fieldName);
     
     uploadHandler(req, res, (err: any) => {
       if (err instanceof multer.MulterError) {
         // Multer-specific errors
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({
+          res.status(400).json({
             success: false,
             message: 'File size exceeds maximum limit of 5MB'
           });
+          return;
         }
         
         logger.error('Multer error:', err.message);
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: `Upload error: ${err.message}`
         });
+        return;
       } else if (err) {
         // Other errors
         logger.error('Upload error:', err.message);
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: err.message || 'File upload failed'
         });
+        return;
       }
       
       // No error, proceed
@@ -61,12 +64,13 @@ export const uploadSingle = (fieldName: string) => {
 };
 
 // Middleware to check if file was uploaded
-export const requireFile = (req: Request, res: Response, next: NextFunction) => {
+export const requireFile = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.file) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'No file uploaded'
     });
+    return;
   }
   next();
 };
