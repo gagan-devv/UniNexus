@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import crypto from 'crypto';
 import { logger } from '../utils/logger';
+import { getRedisClient } from '../config/redis';
 
 export class CacheService {
   private redisClient: Redis | null;
@@ -100,13 +101,13 @@ export class CacheService {
   /**
    * Cache events with filters
    * @param filters - Filter object
-   * @param events - Events array to cache
+   * @param data - Events data to cache (can be array or object with events and pagination)
    * @param ttl - Time to live in seconds (default: 300)
    */
-  async setEvents(filters: Record<string, any>, events: any[], ttl: number = 300): Promise<void> {
+  async setEvents(filters: Record<string, any>, data: any, ttl: number = 300): Promise<void> {
     const filterHash = this.hashFilters(filters);
     const key = this.generateKey('events', 'list', filterHash);
-    await this.set(key, events, ttl);
+    await this.set(key, data, ttl);
   }
 
   /**
@@ -134,13 +135,13 @@ export class CacheService {
   /**
    * Cache clubs with filters
    * @param filters - Filter object
-   * @param clubs - Clubs array to cache
+   * @param data - Clubs data to cache (can be array or object with clubs and pagination)
    * @param ttl - Time to live in seconds (default: 300)
    */
-  async setClubs(filters: Record<string, any>, clubs: any[], ttl: number = 300): Promise<void> {
+  async setClubs(filters: Record<string, any>, data: any, ttl: number = 300): Promise<void> {
     const filterHash = this.hashFilters(filters);
     const key = this.generateKey('clubs', 'list', filterHash);
-    await this.set(key, clubs, ttl);
+    await this.set(key, data, ttl);
   }
 
   /**
@@ -201,3 +202,14 @@ export class CacheService {
     }
   }
 }
+
+// Singleton instance
+let cacheServiceInstance: CacheService | null = null;
+
+export const getCacheService = (): CacheService => {
+  if (!cacheServiceInstance) {
+    const redisClient = getRedisClient();
+    cacheServiceInstance = new CacheService(redisClient);
+  }
+  return cacheServiceInstance;
+};

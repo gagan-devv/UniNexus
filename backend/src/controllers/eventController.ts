@@ -5,6 +5,7 @@ import { IUser } from '../models/User';
 import { ClubProfile } from '../models/ClubProfile';
 import { logger } from '../utils/logger';
 import { validateCreateEventInput, validateUpdateEventInput } from '../validation/eventValidation';
+import { getCacheService } from '../services/cacheService';
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
@@ -47,6 +48,10 @@ const createEvent = async (req: AuthenticatedRequest, res: Response): Promise<vo
 
         const populatedEvent = await Event.findById(newEvent._id).populate('organizer', 'name email');
 
+        // Invalidate event cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateEvents();
+
         res.status(201).json({
             success: true,
             message: 'Event created successfully',
@@ -77,6 +82,28 @@ const getAllEvents = async (req: Request, res: Response): Promise<void> => {
         
         query.isPublic = true;
 
+        // Prepare cache filters
+        const cacheFilters = {
+            category: category || 'all',
+            limit: Number(limit),
+            offset: Number(offset),
+            upcoming: upcoming
+        };
+
+        // Check cache first
+        const cacheService = getCacheService();
+        const cachedData = await cacheService.getEvents(cacheFilters);
+        
+        if (cachedData) {
+            logger.debug('Returning cached events data');
+            res.json({
+                success: true,
+                data: cachedData
+            });
+            return;
+        }
+
+        // Cache miss - query database
         const events = await Event.find(query)
             .populate('organizer', 'name email logoUrl')
             .sort({ startTime: 1 })
@@ -85,17 +112,22 @@ const getAllEvents = async (req: Request, res: Response): Promise<void> => {
 
         const total = await Event.countDocuments(query);
 
+        const responseData = {
+            events,
+            pagination: {
+                total,
+                limit: Number(limit),
+                offset: Number(offset),
+                hasMore: Number(offset) + Number(limit) < total
+            }
+        };
+
+        // Store in cache with 300s TTL
+        await cacheService.setEvents(cacheFilters, responseData, 300);
+
         res.json({
             success: true,
-            data: {
-                events,
-                pagination: {
-                    total,
-                    limit: Number(limit),
-                    offset: Number(offset),
-                    hasMore: Number(offset) + Number(limit) < total
-                }
-            }
+            data: responseData
         });
     } catch (error) {
         logger.error('Get all events error:', error instanceof Error ? error.message : String(error));
@@ -108,7 +140,32 @@ const getAllEvents = async (req: Request, res: Response): Promise<void> => {
 
 const getEventById = async (req: Request, res: Response): Promise<void> => {
     try {
-        const event = await Event.findById(req.params.id)
+        const eventId = req.params.id;
+        
+        if (!eventId || Array.isArray(eventId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Event ID is required'
+            });
+            return;
+        }
+        
+        // Check cache first
+        const cacheService = getCacheService();
+        const cacheKey = cacheService.generateKey('events', 'detail', eventId);
+        const cachedData = await cacheService.get(cacheKey);
+        
+        if (cachedData) {
+            logger.debug(`Returning cached event detail for ${eventId}`);
+            res.json({
+                success: true,
+                data: cachedData
+            });
+            return;
+        }
+
+        // Cache miss - query database
+        const event = await Event.findById(eventId)
             .populate('organizer', 'name email logoUrl isVerified');
         
         if (!event) {
@@ -143,12 +200,17 @@ const getEventById = async (req: Request, res: Response): Promise<void> => {
             counts[item._id as keyof typeof counts] = item.count;
         });
 
+        const responseData = {
+            ...event.toObject(),
+            rsvpCounts: counts
+        };
+
+        // Store in cache with 600s TTL
+        await cacheService.set(cacheKey, responseData, 600);
+
         res.json({
             success: true,
-            data: {
-                ...event.toObject(),
-                rsvpCounts: counts
-            }
+            data: responseData
         });
     } catch (error) {
         logger.error('Get event by ID error:', error instanceof Error ? error.message : String(error));
@@ -193,6 +255,10 @@ const updateEvent = async (req: AuthenticatedRequest, res: Response): Promise<vo
             return;
         }
 
+        // Invalidate event cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateEvents();
+
         res.json({
             success: true,
             message: 'Event updated successfully',
@@ -228,6 +294,10 @@ const deleteEvent = async (req: AuthenticatedRequest, res: Response): Promise<vo
 
         await RSVP.deleteMany({ event: event._id });
         await Event.findByIdAndDelete(req.params.id);
+
+        // Invalidate event cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateEvents();
 
         res.json({
             success: true,

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { User, IUser } from '../models/User';
 import { logger } from '../utils/logger';
+import { getCacheService } from '../services/cacheService';
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
@@ -8,7 +9,31 @@ interface AuthenticatedRequest extends Request {
 
 export const getUserProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const user = await User.findById(req.user?._id).select('-password -refreshToken');
+        const userId = req.user?._id?.toString();
+        
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        // Check cache first
+        const cacheService = getCacheService();
+        const cachedProfile = await cacheService.getUserProfile(userId);
+        
+        if (cachedProfile) {
+            logger.debug(`Returning cached user profile for ${userId}`);
+            res.json({
+                success: true,
+                data: cachedProfile
+            });
+            return;
+        }
+
+        // Cache miss - query database
+        const user = await User.findById(userId).select('-password -refreshToken');
         
         if (!user) {
             res.status(404).json({
@@ -17,6 +42,9 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response): 
             });
             return;
         }
+
+        // Store in cache with 600s TTL
+        await cacheService.setUserProfile(userId, user, 600);
 
         res.json({
             success: true,
@@ -50,6 +78,8 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
             return;
         }
 
+        const userId = req.user?._id?.toString();
+        
         const user = await User.findByIdAndUpdate(
             req.user?._id, 
             updates, 
@@ -62,6 +92,12 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
                 message: 'User not found'
             });
             return;
+        }
+
+        // Invalidate user profile cache
+        if (userId) {
+            const cacheService = getCacheService();
+            await cacheService.invalidateUserProfile(userId);
         }
 
         res.json({
