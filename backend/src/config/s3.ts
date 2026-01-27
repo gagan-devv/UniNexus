@@ -8,10 +8,17 @@ export const initializeS3 = (): S3Client | null => {
     const awsRegion = process.env.AWS_REGION;
     const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
     const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    const bucketName = process.env.S3_BUCKET_NAME;
 
-    if (!awsRegion || !awsAccessKeyId || !awsSecretAccessKey) {
-      logger.warn('⚠️ AWS S3 credentials not configured. Media upload will be unavailable.');
-      logger.warn('Required env vars: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY');
+    // Validate required environment variables
+    if (!awsRegion || !awsAccessKeyId || !awsSecretAccessKey || !bucketName) {
+      logger.warn('⚠️ AWS S3 configuration incomplete. Media upload features will be unavailable.');
+      logger.warn('Missing variables:', {
+        region: !awsRegion,
+        accessKeyId: !awsAccessKeyId,
+        secretAccessKey: !awsSecretAccessKey,
+        bucketName: !bucketName,
+      });
       return null;
     }
 

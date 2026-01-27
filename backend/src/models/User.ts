@@ -13,6 +13,21 @@ export interface IUser extends Document {
     major?: string;
     bio?: string;
     avatarUrl?: string;
+    profilePicture?: {
+        s3Key: string;
+        uploadedAt: Date;
+    };
+    settings?: {
+        notifications: {
+            events: boolean;
+            clubs: boolean;
+            messages: boolean;
+        };
+        privacy: {
+            showProfile: boolean;
+            showEvents: boolean;
+        };
+    };
     refreshToken?: string;
     createdAt: Date;
     updatedAt: Date;
@@ -107,6 +122,41 @@ const UserSchema = new Schema<IUser>({
         type: String,
         trim: true,
         match: [/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i, 'Please enter a valid image URL']
+    },
+    profilePicture: {
+        s3Key: {
+            type: String,
+            trim: true
+        },
+        uploadedAt: {
+            type: Date
+        }
+    },
+    settings: {
+        notifications: {
+            events: {
+                type: Boolean,
+                default: true
+            },
+            clubs: {
+                type: Boolean,
+                default: true
+            },
+            messages: {
+                type: Boolean,
+                default: true
+            }
+        },
+        privacy: {
+            showProfile: {
+                type: Boolean,
+                default: true
+            },
+            showEvents: {
+                type: Boolean,
+                default: true
+            }
+        }
     },
     refreshToken: {
         type: String
