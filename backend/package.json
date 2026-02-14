@@ -13,6 +13,7 @@
     "debug:db": "ts-node src/scripts/debugConnection.ts",
     "atlas:status": "ts-node src/scripts/atlasStatus.ts",
     "get-ip": "ts-node src/scripts/getMyIP.ts",
+    "seed": "ts-node src/scripts/seedData.ts",
     "start": "ts-node src/server.ts",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
