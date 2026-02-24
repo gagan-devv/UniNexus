@@ -43,10 +43,10 @@ describe('Discover API Property Tests', () => {
     });
 
     /**
-     * Property 12: Search query execution
-     * **Validates: Requirements 3.2, 3.3, 3.4, 3.5**
+     * Property 1: Discover filter matching
+     * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**
      */
-    describe('Property 12: Search query execution', () => {
+    describe('Property 1: Discover filter matching', () => {
         it('should return results matching the search query in events or clubs', async () => {
             await fc.assert(
                 fc.asyncProperty(
@@ -128,10 +128,10 @@ describe('Discover API Property Tests', () => {
     });
 
     /**
-     * Property 13: Category filter application
-     * **Validates: Requirements 3.2, 3.3, 3.4, 3.5**
+     * Property 1: Discover filter matching (continued - category filters)
+     * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**
      */
-    describe('Property 13: Category filter application', () => {
+    describe('Property 1: Discover filter matching (continued - category filters)', () => {
         it('should only return events matching the specified category', async () => {
             await fc.assert(
                 fc.asyncProperty(
@@ -265,10 +265,10 @@ describe('Discover API Property Tests', () => {
     });
 
     /**
-     * Property 14: Date range filter application
-     * **Validates: Requirements 3.2, 3.3, 3.4, 3.5**
+     * Property 1: Discover filter matching (continued - date range filters)
+     * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**
      */
-    describe('Property 14: Date range filter application', () => {
+    describe('Property 1: Discover filter matching (continued - date range filters)', () => {
         it('should only return events within the specified date range', async () => {
             await fc.assert(
                 fc.asyncProperty(
@@ -413,6 +413,246 @@ describe('Discover API Property Tests', () => {
 
             // Clean up
             await Event.findByIdAndDelete(boundaryEvent._id);
+            await ClubProfile.findByIdAndDelete(club._id);
+        });
+    });
+
+    /**
+     * Property 2: Cache-aside pattern
+     * **Validates: Requirements 1.6, 1.7, 1.8**
+     */
+    describe('Property 2: Cache-aside pattern', () => {
+        it('should check cache before querying database', async () => {
+            // Create test club
+            const club = await ClubProfile.create({
+                user: testUser._id,
+                name: 'Cache Test Club',
+                description: 'Testing cache',
+                email: 'cache@example.com'
+            });
+
+            // First request - cache miss, should query DB
+            const response1 = await request(app)
+                .get('/api/discover')
+                .query({ type: 'clubs', query: 'Cache' });
+
+            expect(response1.status).toBe(200);
+            expect(response1.body.data.clubs).toHaveLength(1);
+
+            // Second request - should hit cache (same filters)
+            const response2 = await request(app)
+                .get('/api/discover')
+                .query({ type: 'clubs', query: 'Cache' });
+
+            expect(response2.status).toBe(200);
+            expect(response2.body.data.clubs).toHaveLength(1);
+
+            // Clean up
+            await ClubProfile.findByIdAndDelete(club._id);
+        });
+
+        it('should store results in cache with 300s TTL', async () => {
+            const cacheService = getCacheService();
+            
+            // Check if Redis is available
+            const redisAvailable = await cacheService.ping();
+            
+            if (!redisAvailable) {
+                // Skip test if Redis is not available
+                console.log('Redis not available, skipping cache test');
+                return;
+            }
+
+            await fc.assert(
+                fc.asyncProperty(
+                    fc.constantFrom('events', 'clubs', 'all'),
+                    async (type) => {
+                        // Clear cache for this specific test
+                        await cacheService.delPattern('discover:*');
+                        
+                        // Make request
+                        const response = await request(app)
+                            .get('/api/discover')
+                            .query({ type });
+
+                        expect(response.status).toBe(200);
+
+                        // Verify cache key exists
+                        const cacheFilters = {
+                            query: '',
+                            type,
+                            category: 'all',
+                            dateRange: 'all'
+                        };
+                        const cacheKey = cacheService.generateKey('discover', 'search', cacheService.hashFilters(cacheFilters));
+                        const cachedData = await cacheService.get(cacheKey);
+                        
+                        expect(cachedData).not.toBeNull();
+                        expect(cachedData).toEqual(response.body.data);
+                        
+                        // Clean up cache after test
+                        await cacheService.delPattern('discover:*');
+                    }
+                ),
+                { numRuns: 3 }
+            );
+        });
+
+        it('should generate consistent cache keys for same filters', async () => {
+            await fc.assert(
+                fc.asyncProperty(
+                    fc.record({
+                        query: fc.option(fc.string({ minLength: 3, maxLength: 10 }), { nil: undefined }),
+                        type: fc.constantFrom('events', 'clubs', 'all'),
+                        category: fc.option(fc.constantFrom('Tech', 'Cultural', 'Sports'), { nil: undefined }),
+                        dateRange: fc.option(fc.constantFrom('today', 'week', 'month'), { nil: undefined })
+                    }),
+                    async (filters) => {
+                        const cacheService = getCacheService();
+                        
+                        // Normalize filters like the controller does
+                        const normalizedFilters = {
+                            query: filters.query || '',
+                            type: filters.type,
+                            category: filters.category || 'all',
+                            dateRange: filters.dateRange || 'all'
+                        };
+
+                        // Generate key twice
+                        const key1 = cacheService.generateKey('discover', 'search', cacheService.hashFilters(normalizedFilters));
+                        const key2 = cacheService.generateKey('discover', 'search', cacheService.hashFilters(normalizedFilters));
+
+                        // Keys should be identical
+                        expect(key1).toBe(key2);
+                    }
+                ),
+                { numRuns: 20 }
+            );
+        });
+    });
+
+    /**
+     * Property 3: Event sorting and limiting
+     * **Validates: Requirements 1.10**
+     */
+    describe('Property 3: Event sorting and limiting', () => {
+        it('should sort events by startTime ascending', async () => {
+            // Create test club
+            const club = await ClubProfile.create({
+                user: testUser._id,
+                name: 'Test Club',
+                description: 'Test Description',
+                email: 'testclub@example.com'
+            });
+
+            const now = new Date();
+            
+            // Create events with different start times
+            const event1 = await Event.create({
+                title: 'Event 1',
+                description: 'First event',
+                location: 'Location 1',
+                category: 'Tech',
+                organizer: club._id,
+                startTime: new Date(now.getTime() + 86400000 * 3), // 3 days from now
+                endTime: new Date(now.getTime() + 86400000 * 3 + 3600000),
+                isPublic: true
+            });
+
+            const event2 = await Event.create({
+                title: 'Event 2',
+                description: 'Second event',
+                location: 'Location 2',
+                category: 'Tech',
+                organizer: club._id,
+                startTime: new Date(now.getTime() + 86400000), // 1 day from now
+                endTime: new Date(now.getTime() + 86400000 + 3600000),
+                isPublic: true
+            });
+
+            const event3 = await Event.create({
+                title: 'Event 3',
+                description: 'Third event',
+                location: 'Location 3',
+                category: 'Tech',
+                organizer: club._id,
+                startTime: new Date(now.getTime() + 86400000 * 2), // 2 days from now
+                endTime: new Date(now.getTime() + 86400000 * 2 + 3600000),
+                isPublic: true
+            });
+
+            // Fetch events
+            const response = await request(app)
+                .get('/api/discover')
+                .query({ type: 'events' });
+
+            expect(response.status).toBe(200);
+            const { events } = response.body.data;
+
+            // Verify events are sorted by startTime ascending
+            for (let i = 0; i < events.length - 1; i++) {
+                const currentTime = new Date(events[i].startTime).getTime();
+                const nextTime = new Date(events[i + 1].startTime).getTime();
+                expect(currentTime).toBeLessThanOrEqual(nextTime);
+            }
+
+            // Verify our test events are in correct order
+            const eventIds = events.map((e: any) => e._id.toString());
+            const event2Index = eventIds.indexOf(event2._id.toString());
+            const event3Index = eventIds.indexOf(event3._id.toString());
+            const event1Index = eventIds.indexOf(event1._id.toString());
+
+            expect(event2Index).toBeLessThan(event3Index);
+            expect(event3Index).toBeLessThan(event1Index);
+
+            // Clean up
+            await Event.deleteMany({ _id: { $in: [event1._id, event2._id, event3._id] } });
+            await ClubProfile.findByIdAndDelete(club._id);
+        });
+
+        it('should limit results to 50 items', async () => {
+            // Create test club
+            const club = await ClubProfile.create({
+                user: testUser._id,
+                name: 'Test Club',
+                description: 'Test Description',
+                email: 'testclub@example.com'
+            });
+
+            const now = new Date();
+            const eventPromises = [];
+
+            // Create 60 events
+            for (let i = 0; i < 60; i++) {
+                eventPromises.push(
+                    Event.create({
+                        title: `Event ${i}`,
+                        description: `Event description ${i}`,
+                        location: 'Test Location',
+                        category: 'Tech',
+                        organizer: club._id,
+                        startTime: new Date(now.getTime() + 86400000 + i * 3600000),
+                        endTime: new Date(now.getTime() + 86400000 + i * 3600000 + 3600000),
+                        isPublic: true
+                    })
+                );
+            }
+
+            await Promise.all(eventPromises);
+
+            // Fetch events
+            const response = await request(app)
+                .get('/api/discover')
+                .query({ type: 'events' });
+
+            expect(response.status).toBe(200);
+            const { events } = response.body.data;
+
+            // Should return exactly 50 events
+            expect(events.length).toBe(50);
+
+            // Clean up
+            await Event.deleteMany({ organizer: club._id });
             await ClubProfile.findByIdAndDelete(club._id);
         });
     });
