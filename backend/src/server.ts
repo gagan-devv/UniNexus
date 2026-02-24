@@ -18,6 +18,7 @@ import discoverRoutes from "./routes/discoverRoutes";
 import trendingRoutes from "./routes/trendingRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import messageRoutes from "./routes/messageRoutes";
+import settingsRoutes from "./routes/settingsRoutes";
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ app.use("/api/discover", discoverRoutes);
 app.use("/api/trending", trendingRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("UniNexus API is running...");
