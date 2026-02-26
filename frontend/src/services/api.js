@@ -86,4 +86,31 @@ export const rsvpAPI = {
   delete: (eventId) => api.delete(`/rsvp/events/${eventId}`),
 };
 
+export const discoverAPI = {
+  getResults: (params) => api.get('/discover', { params }),
+};
+
+export const trendingAPI = {
+  getTrending: () => api.get('/trending'),
+};
+
+export const notificationAPI = {
+  getNotifications: (page, limit) => api.get('/notifications', { params: { page, limit } }),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+};
+
+export const messageAPI = {
+  getConversations: () => api.get('/messages/conversations'),
+  getConversationMessages: (id) => api.get(`/messages/conversations/${id}`),
+  sendMessage: (conversationId, content) => api.post('/messages', { conversationId, content }),
+  createConversation: (participantIds, initialMessage) => api.post('/messages/conversations', { participantIds, initialMessage }),
+};
+
+export const settingsAPI = {
+  getSettings: () => api.get('/settings'),
+  updateSettings: (data) => api.put('/settings', data),
+  changePassword: (currentPassword, newPassword) => api.put('/settings/password', { currentPassword, newPassword }),
+};
+
 export default api;
