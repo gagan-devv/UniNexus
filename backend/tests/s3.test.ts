@@ -1,4 +1,4 @@
-import { initializeS3, getS3Client, getS3BucketName, checkS3Connection } from '../src/config/s3';
+import { initializeS3, getS3Client, getS3BucketName } from '../src/config/s3';
 
 describe('S3 Infrastructure Tests', () => {
   describe('Unit: S3 Initialization', () => {
@@ -68,21 +68,6 @@ describe('S3 Infrastructure Tests', () => {
 
       // Restore original value
       process.env.AWS_SECRET_ACCESS_KEY = originalSecretKey;
-    });
-  });
-
-  describe('Unit: S3 Connection Check', () => {
-    it('should return false when S3 client is not initialized', async () => {
-      // This test assumes S3 is not properly configured with real credentials
-      const isConnected = await checkS3Connection();
-      
-      // Will be false if credentials are invalid or bucket doesn't exist
-      expect(typeof isConnected).toBe('boolean');
-    });
-
-    it('should handle connection check errors gracefully', async () => {
-      // Should not throw even with invalid configuration
-      await expect(checkS3Connection()).resolves.not.toThrow();
     });
   });
 

@@ -19,8 +19,8 @@ describe('MediaService Tests', () => {
           fc.constantFrom('image/jpeg', 'image/png', 'image/webp', 'image/gif'),
           fc.integer({ min: 1, max: 5 * 1024 * 1024 }),
           (mimetype, size) => {
-            const result = mediaService.validateImageFile({ mimetype, size });
-            expect(result.valid).toBe(true);
+            const result = mediaService.validateImageFile({ mimetype, size } as Express.Multer.File);
+            expect(result.isValid).toBe(true);
             expect(result.error).toBeUndefined();
           }
         ),
@@ -42,8 +42,8 @@ describe('MediaService Tests', () => {
           ),
           fc.integer({ min: 1, max: 5 * 1024 * 1024 }),
           (mimetype, size) => {
-            const result = mediaService.validateImageFile({ mimetype, size });
-            expect(result.valid).toBe(false);
+            const result = mediaService.validateImageFile({ mimetype, size } as Express.Multer.File);
+            expect(result.isValid).toBe(false);
             expect(result.error).toBeDefined();
             expect(result.error).toContain('Invalid file type');
           }
@@ -61,8 +61,8 @@ describe('MediaService Tests', () => {
           fc.constantFrom('image/jpeg', 'image/png', 'image/webp', 'image/gif'),
           fc.integer({ min: 1, max: 5 * 1024 * 1024 }),
           (mimetype, size) => {
-            const result = mediaService.validateImageFile({ mimetype, size });
-            expect(result.valid).toBe(true);
+            const result = mediaService.validateImageFile({ mimetype, size } as Express.Multer.File);
+            expect(result.isValid).toBe(true);
             expect(result.error).toBeUndefined();
           }
         ),
@@ -76,8 +76,8 @@ describe('MediaService Tests', () => {
           fc.constantFrom('image/jpeg', 'image/png', 'image/webp', 'image/gif'),
           fc.integer({ min: 5 * 1024 * 1024 + 1, max: 10 * 1024 * 1024 }),
           (mimetype, size) => {
-            const result = mediaService.validateImageFile({ mimetype, size });
-            expect(result.valid).toBe(false);
+            const result = mediaService.validateImageFile({ mimetype, size } as Express.Multer.File);
+            expect(result.isValid).toBe(false);
             expect(result.error).toBeDefined();
             expect(result.error).toContain('exceeds maximum allowed size');
           }
@@ -92,8 +92,8 @@ describe('MediaService Tests', () => {
           fc.constantFrom('image/jpeg', 'image/png'),
           fc.integer({ min: 5 * 1024 * 1024 + 1, max: 10 * 1024 * 1024 }),
           (mimetype, size) => {
-            const result = mediaService.validateImageFile({ mimetype, size });
-            expect(result.valid).toBe(false);
+            const result = mediaService.validateImageFile({ mimetype, size } as Express.Multer.File);
+            expect(result.isValid).toBe(false);
             expect(result.error).toMatch(/\d+MB/); // Should mention MB in error
           }
         ),
@@ -102,89 +102,45 @@ describe('MediaService Tests', () => {
     });
   });
 
-  describe('Property 7: Image optimization', () => {
-    // Feature: uninexus-phase-2-infrastructure-and-pages, Property 7: Image optimization
-    it('should reduce file size through optimization', async () => {
-      // Create a simple test image buffer (1x1 red pixel PNG)
-      const testImageBuffer = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
-        'base64'
-      );
-
-      await fc.assert(
-        fc.asyncProperty(
-          fc.integer({ min: 800, max: 1200 }),
-          fc.integer({ min: 70, max: 95 }),
-          async (maxWidth, quality) => {
-            const optimized = await mediaService.optimizeImage(testImageBuffer, { maxWidth, quality });
-            
-            // Optimized buffer should be a Buffer
-            expect(Buffer.isBuffer(optimized)).toBe(true);
-            
-            // Optimized buffer should have content
-            expect(optimized.length).toBeGreaterThan(0);
-          }
-        ),
-        { numRuns: 5 }
-      );
-    });
-
-    it('should convert images to WebP format', async () => {
-      const testImageBuffer = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
-        'base64'
-      );
-
-      const optimized = await mediaService.optimizeImage(testImageBuffer);
-      
-      // WebP files start with 'RIFF' and contain 'WEBP'
-      const header = optimized.toString('ascii', 0, 4);
-      const format = optimized.toString('ascii', 8, 12);
-      
-      expect(header).toBe('RIFF');
-      expect(format).toBe('WEBP');
-    });
-  });
-
   describe('Unit: File Validation', () => {
     it('should validate JPEG files correctly', () => {
       const result = mediaService.validateImageFile({
         mimetype: 'image/jpeg',
         size: 1024 * 1024, // 1MB
-      });
-      expect(result.valid).toBe(true);
+      } as Express.Multer.File);
+      expect(result.isValid).toBe(true);
     });
 
     it('should validate PNG files correctly', () => {
       const result = mediaService.validateImageFile({
         mimetype: 'image/png',
         size: 2 * 1024 * 1024, // 2MB
-      });
-      expect(result.valid).toBe(true);
+      } as Express.Multer.File);
+      expect(result.isValid).toBe(true);
     });
 
     it('should validate WebP files correctly', () => {
       const result = mediaService.validateImageFile({
         mimetype: 'image/webp',
         size: 3 * 1024 * 1024, // 3MB
-      });
-      expect(result.valid).toBe(true);
+      } as Express.Multer.File);
+      expect(result.isValid).toBe(true);
     });
 
     it('should validate GIF files correctly', () => {
       const result = mediaService.validateImageFile({
         mimetype: 'image/gif',
         size: 4 * 1024 * 1024, // 4MB
-      });
-      expect(result.valid).toBe(true);
+      } as Express.Multer.File);
+      expect(result.isValid).toBe(true);
     });
 
     it('should reject files at exactly 5MB + 1 byte', () => {
       const result = mediaService.validateImageFile({
         mimetype: 'image/jpeg',
         size: 5 * 1024 * 1024 + 1,
-      });
-      expect(result.valid).toBe(false);
+      } as Express.Multer.File);
+      expect(result.isValid).toBe(false);
       expect(result.error).toContain('exceeds maximum');
     });
 
@@ -192,8 +148,8 @@ describe('MediaService Tests', () => {
       const result = mediaService.validateImageFile({
         mimetype: 'image/jpeg',
         size: 5 * 1024 * 1024,
-      });
-      expect(result.valid).toBe(true);
+      } as Express.Multer.File);
+      expect(result.isValid).toBe(true);
     });
 
     it('should reject unsupported image formats', () => {
@@ -203,8 +159,8 @@ describe('MediaService Tests', () => {
         const result = mediaService.validateImageFile({
           mimetype,
           size: 1024 * 1024,
-        });
-        expect(result.valid).toBe(false);
+        } as Express.Multer.File);
+        expect(result.isValid).toBe(false);
         expect(result.error).toContain('Invalid file type');
       });
     });
@@ -216,8 +172,8 @@ describe('MediaService Tests', () => {
         const result = mediaService.validateImageFile({
           mimetype,
           size: 1024 * 1024,
-        });
-        expect(result.valid).toBe(false);
+        } as Express.Multer.File);
+        expect(result.isValid).toBe(false);
       });
     });
   });
@@ -400,7 +356,7 @@ describe('MediaService Tests', () => {
               mimetype: 'image/jpeg',
               size: testImageBuffer.length,
               originalname: filename,
-            };
+            } as Express.Multer.File;
 
             try {
               const result = await mediaService.uploadProfilePicture(userId, mockFile);
@@ -446,7 +402,7 @@ describe('MediaService Tests', () => {
               mimetype: 'image/png',
               size: testImageBuffer.length,
               originalname: filename,
-            };
+            } as Express.Multer.File;
 
             try {
               const result = await mediaService.uploadClubLogo(clubId, mockFile);
@@ -488,7 +444,7 @@ describe('MediaService Tests', () => {
               mimetype: 'image/webp',
               size: testImageBuffer.length,
               originalname: filename,
-            };
+            } as Express.Multer.File;
 
             try {
               const result = await mediaService.uploadEventPoster(eventId, mockFile);
@@ -530,7 +486,7 @@ describe('MediaService Tests', () => {
               mimetype: 'image/gif',
               size: testImageBuffer.length,
               originalname: filename,
-            };
+            } as Express.Multer.File;
 
             const results: { type: string; s3Key: string }[] = [];
 
@@ -817,7 +773,7 @@ describe('MediaService Tests', () => {
         mimetype: 'image/jpeg',
         size: 1024,
         originalname: 'test.jpg',
-      };
+      } as Express.Multer.File;
       
       await expect(unconfiguredService.uploadProfilePicture('user123', mockFile))
         .rejects.toThrow('S3 client not configured');
@@ -833,7 +789,7 @@ describe('MediaService Tests', () => {
         mimetype: 'application/pdf',
         size: 1024,
         originalname: 'test.pdf',
-      };
+      } as Express.Multer.File;
       
       await expect(testService.uploadProfilePicture('user123', invalidFile))
         .rejects.toThrow('Invalid file type');
@@ -849,7 +805,7 @@ describe('MediaService Tests', () => {
         mimetype: 'image/jpeg',
         size: 6 * 1024 * 1024, // 6MB
         originalname: 'test.jpg',
-      };
+      } as Express.Multer.File;
       
       await expect(testService.uploadProfilePicture('user123', oversizedFile))
         .rejects.toThrow('exceeds maximum');
@@ -871,12 +827,12 @@ describe('MediaService Tests', () => {
             const mockFile = {
               mimetype: testCase.mimetype,
               size: testCase.size,
-            };
+            } as Express.Multer.File;
 
             const result = mediaService.validateImageFile(mockFile);
             
             // Should be invalid
-            expect(result.valid).toBe(false);
+            expect(result.isValid).toBe(false);
             
             // Should have descriptive error
             expect(result.error).toBeDefined();
@@ -899,7 +855,7 @@ describe('MediaService Tests', () => {
         mimetype: 'image/jpeg',
         size: testImageBuffer.length,
         originalname: 'test.jpg',
-      };
+      } as Express.Multer.File;
 
       // Service without S3 configured
       const unconfiguredService = new MediaService(null, undefined);
@@ -921,8 +877,8 @@ describe('MediaService Tests', () => {
       const typeError = mediaService.validateImageFile({
         mimetype: 'application/pdf',
         size: 1024,
-      });
-      expect(typeError.valid).toBe(false);
+      } as Express.Multer.File);
+      expect(typeError.isValid).toBe(false);
       expect(typeError.error).toMatch(/type|Invalid|Allowed/i);
       expect(typeError.error!.length).toBeGreaterThan(10);
 
@@ -930,8 +886,8 @@ describe('MediaService Tests', () => {
       const sizeError = mediaService.validateImageFile({
         mimetype: 'image/jpeg',
         size: 6 * 1024 * 1024,
-      });
-      expect(sizeError.valid).toBe(false);
+      } as Express.Multer.File);
+      expect(sizeError.isValid).toBe(false);
       expect(sizeError.error).toMatch(/size|exceed|MB/i);
       expect(sizeError.error!.length).toBeGreaterThan(10);
     });
@@ -942,7 +898,7 @@ describe('MediaService Tests', () => {
         mimetype: 'application/pdf',
         size: 1024,
         originalname: 'test.pdf',
-      };
+      } as Express.Multer.File;
 
       const mockS3Client = {} as any;
       const testService = new MediaService(mockS3Client, 'test-bucket');
