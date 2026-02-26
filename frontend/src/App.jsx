@@ -11,6 +11,7 @@ import Events from './pages/Events';
 import Clubs from './pages/Clubs';
 import Profile from './pages/Profile';
 import Discover from './pages/Discover';
+import Trending from './pages/Trending';
 import './App.css';
 
 function App() {
@@ -95,12 +96,7 @@ function App() {
                     path="/trending" 
                     element={
                       <ProtectedRoute>
-                        <div className="p-4 sm:p-6 lg:p-8">
-                          <div className="text-center py-12">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trending Page</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2">Coming soon...</p>
-                          </div>
-                        </div>
+                        <Trending />
                       </ProtectedRoute>
                     } 
                   />
