@@ -12,6 +12,10 @@ import Clubs from './pages/Clubs';
 import Profile from './pages/Profile';
 import Discover from './pages/Discover';
 import Trending from './pages/Trending';
+import Messages from './pages/Messages';
+import Notifications from './pages/Notifications'
+import Settings from './pages/Settings'
+import MyClub from './pages/MyClub'
 import './App.css';
 
 function App() {
@@ -104,12 +108,7 @@ function App() {
                     path="/notifications" 
                     element={
                       <ProtectedRoute>
-                        <div className="p-4 sm:p-6 lg:p-8">
-                          <div className="text-center py-12">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications Page</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2">Coming soon...</p>
-                          </div>
-                        </div>
+                        <Notifications />
                       </ProtectedRoute>
                     } 
                   />
@@ -117,12 +116,7 @@ function App() {
                     path="/messages" 
                     element={
                       <ProtectedRoute>
-                        <div className="p-4 sm:p-6 lg:p-8">
-                          <div className="text-center py-12">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Messages Page</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2">Coming soon...</p>
-                          </div>
-                        </div>
+                        <Messages />
                       </ProtectedRoute>
                     } 
                   />
@@ -130,12 +124,7 @@ function App() {
                     path="/settings" 
                     element={
                       <ProtectedRoute>
-                        <div className="p-4 sm:p-6 lg:p-8">
-                          <div className="text-center py-12">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings Page</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2">Coming soon...</p>
-                          </div>
-                        </div>
+                        <Settings />
                       </ProtectedRoute>
                     } 
                   />
@@ -143,12 +132,7 @@ function App() {
                     path="/my-club" 
                     element={
                       <ProtectedRoute>
-                        <div className="p-4 sm:p-6 lg:p-8">
-                          <div className="text-center py-12">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Club Page</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2">Coming soon...</p>
-                          </div>
-                        </div>
+                        <MyClub />
                       </ProtectedRoute>
                     } 
                   />
