@@ -16,6 +16,7 @@ import Messages from './pages/Messages';
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
 import MyClub from './pages/MyClub'
+import EventDetails from './pages/EventDetails'
 import './App.css';
 
 function App() {
@@ -133,6 +134,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <MyClub />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/events/:id" 
+                    element={
+                      <ProtectedRoute>
+                        <EventDetails />
                       </ProtectedRoute>
                     } 
                   />
