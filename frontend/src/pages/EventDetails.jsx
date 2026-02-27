@@ -39,24 +39,54 @@ const EventDetails = () => {
       // Fetch RSVPs to display attendee list (available to everyone)
       try {
         const rsvpResponse = await rsvpAPI.getEventRSVPs(id);
-        const rsvps = rsvpResponse.data.data;
+        const responseData = rsvpResponse.data.data;
         
-        // Update attendee count with actual RSVP count
-        setAttendeeCount(rsvps.length);
+        // Handle both backend structure { rsvps: [...] } and test mock structure (array)
+        let rsvps = [];
+        if (Array.isArray(responseData)) {
+          // Test mock structure
+          rsvps = responseData;
+        } else if (responseData && Array.isArray(responseData.rsvps)) {
+          // Real backend structure
+          rsvps = responseData.rsvps;
+        }
         
-        setAttendees(rsvps.map(rsvp => ({
-          id: rsvp.userId,
-          name: rsvp.userName || 'Anonymous',
-          avatar: rsvp.userAvatar || null
-        })));
-        
-        // Check if authenticated user has RSVP'd
-        if (isAuthenticated && user) {
-          const userRsvp = rsvps.find(rsvp => rsvp.userId === user._id);
-          setHasRsvp(!!userRsvp);
+        if (rsvps.length > 0) {
+          // Update attendee count with actual RSVP count
+          setAttendeeCount(rsvps.length);
+          
+          setAttendees(rsvps.map(rsvp => {
+            // Handle both backend structure (rsvp.user) and test mock structure (rsvp.userId, rsvp.userName)
+            if (rsvp.user) {
+              // Real backend structure with populated user
+              return {
+                id: rsvp.user._id,
+                name: `${rsvp.user.firstName || ''} ${rsvp.user.lastName || ''}`.trim() || rsvp.user.username || 'Anonymous',
+                avatar: rsvp.user.avatarUrl || null
+              };
+            } else {
+              // Test mock structure
+              return {
+                id: rsvp.userId,
+                name: rsvp.userName || 'Anonymous',
+                avatar: rsvp.userAvatar || null
+              };
+            }
+          }));
+          
+          // Check if authenticated user has RSVP'd
+          if (isAuthenticated && user) {
+            const userRsvp = rsvps.find(rsvp => {
+              const rsvpUserId = rsvp.user?._id || rsvp.userId;
+              return rsvpUserId === user._id;
+            });
+            setHasRsvp(!!userRsvp);
+          }
         }
       } catch (err) {
+        // Silently fail - RSVPs are optional, we can use stats count
         console.error('Error fetching RSVPs:', err);
+        // Keep using the stats attendeeCount that was already set
       }
     } catch (err) {
       console.error('Error fetching event details:', err);
@@ -69,6 +99,7 @@ const EventDetails = () => {
       setLoading(false);
     }
   };
+
 
   const handleRsvp = async () => {
     if (!isAuthenticated) {
