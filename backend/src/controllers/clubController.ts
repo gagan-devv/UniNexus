@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { ClubProfile } from '../models/ClubProfile';
+import { ClubMember } from '../models/ClubMember';
+import { Event } from '../models/Event';
 import { IUser } from '../models/User';
 import { logger } from '../utils/logger';
 import { validateCreateClubProfileInput, validateUpdateClubProfileInput } from '../validation/clubValidation';
@@ -148,6 +150,58 @@ const getAllClubs = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
+const getMyClub = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        // Check cache first
+        const cacheService = getCacheService();
+        const cacheKey = cacheService.generateKey('clubs', 'my', req.user._id.toString());
+        const cachedData = await cacheService.get(cacheKey);
+        
+        if (cachedData) {
+            logger.debug(`Returning cached my club data for user ${req.user._id}`);
+            res.json({
+                success: true,
+                data: cachedData
+            });
+            return;
+        }
+
+        // Cache miss - query database
+        const club = await ClubProfile.findOne({ user: req.user._id }).populate('user', 'username email');
+        
+        // Return null if no club found (user hasn't created a club yet)
+        if (!club) {
+            res.json({
+                success: true,
+                data: null
+            });
+            return;
+        }
+
+        // Store in cache with 600s TTL
+        await cacheService.set(cacheKey, club, 600);
+
+        res.json({
+            success: true,
+            data: club
+        });
+    } catch (error) {
+        logger.error('Error getting my club:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
 const getClubById = async (req: Request, res: Response): Promise<void> => {
     try {
         const clubId = req.params.id;
@@ -289,4 +343,238 @@ const deleteClub = async (req: AuthenticatedRequest, res: Response): Promise<voi
     }
 };
 
-export { registerClub, getAllClubs, getClubById, updateClub, deleteClub };
+const joinClub = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const clubId = req.params.id;
+        
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Check if user is already a member
+        const existingMembership = await ClubMember.findOne({
+            userId: req.user._id,
+            clubId: clubId
+        });
+
+        if (existingMembership) {
+            res.status(409).json({
+                success: false,
+                message: 'User is already a member of this club'
+            });
+            return;
+        }
+
+        // Create membership
+        const membership = await ClubMember.create({
+            userId: req.user._id,
+            clubId: clubId
+        });
+
+        // Update member count
+        await ClubProfile.findByIdAndUpdate(clubId, {
+            $inc: { memberCount: 1, 'stats.memberCount': 1 }
+        });
+
+        // Invalidate club cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateClubs();
+
+        res.status(201).json({
+            success: true,
+            message: 'Successfully joined club',
+            data: membership
+        });
+    } catch (error) {
+        logger.error('Error joining club:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+const leaveClub = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const clubId = req.params.id;
+        
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Find and delete membership
+        const membership = await ClubMember.findOneAndDelete({
+            userId: req.user._id,
+            clubId: clubId
+        });
+
+        if (!membership) {
+            res.status(404).json({
+                success: false,
+                message: 'User is not a member of this club'
+            });
+            return;
+        }
+
+        // Update member count (ensure it doesn't go below 0)
+        await ClubProfile.findByIdAndUpdate(clubId, {
+            $inc: { memberCount: -1, 'stats.memberCount': -1 }
+        });
+
+        // Ensure counts don't go negative
+        await ClubProfile.findByIdAndUpdate(clubId, {
+            $max: { memberCount: 0, 'stats.memberCount': 0 }
+        });
+
+        // Invalidate club cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateClubs();
+
+        res.json({
+            success: true,
+            message: 'Successfully left club'
+        });
+    } catch (error) {
+        logger.error('Error leaving club:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+const getClubMembers = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const clubId = req.params.id;
+        
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Get members
+        const members = await ClubMember.find({ clubId })
+            .populate('userId', 'username firstName lastName avatarUrl')
+            .sort({ joinedAt: -1 });
+
+        res.json({
+            success: true,
+            data: {
+                members,
+                count: members.length
+            }
+        });
+    } catch (error) {
+        logger.error('Error getting club members:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+const getClubEvents = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const clubId = req.params.id;
+        
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Get upcoming events organized by this club
+        const events = await Event.find({
+            organizer: clubId,
+            isPublic: true,
+            startTime: { $gte: new Date() }
+        })
+            .sort({ startTime: 1 })
+            .limit(10);
+
+        res.json({
+            success: true,
+            data: {
+                events,
+                count: events.length
+            }
+        });
+    } catch (error) {
+        logger.error('Error getting club events:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+export { registerClub, getAllClubs, getMyClub, getClubById, updateClub, deleteClub, joinClub, leaveClub, getClubMembers, getClubEvents };

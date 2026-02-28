@@ -121,7 +121,22 @@ const UserSchema = new Schema<IUser>({
     avatarUrl: {
         type: String,
         trim: true,
-        match: [/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i, 'Please enter a valid image URL']
+        validate: {
+            validator: function(v: string) {
+                // Allow empty values
+                if (!v) return true;
+                
+                // Check if it's a presigned URL (contains query parameters)
+                if (v.includes('?')) {
+                    // For presigned URLs, just check if it starts with https://
+                    return /^https?:\/\/.+/.test(v);
+                }
+                
+                // For regular URLs, check if it ends with image extension
+                return /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
+            },
+            message: 'Please enter a valid image URL or presigned URL'
+        }
     },
     profilePicture: {
         s3Key: {

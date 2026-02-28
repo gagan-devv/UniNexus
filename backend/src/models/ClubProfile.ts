@@ -82,9 +82,19 @@ const ClubProfileSchema = new Schema<IClubProfile>({
         trim: true,
         validate: {
             validator: function(v: string) {
-                return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(v);
+                // Allow empty values
+                if (!v) return true;
+                
+                // Check if it's a presigned URL (contains query parameters)
+                if (v.includes('?')) {
+                    // For presigned URLs, just check if it starts with https://
+                    return /^https?:\/\/.+/.test(v);
+                }
+                
+                // For regular URLs, check if it ends with image extension
+                return /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(v);
             },
-            message: 'Logo URL must be a valid image URL (jpg, jpeg, png, gif, webp, svg)'
+            message: 'Logo URL must be a valid image URL or presigned URL'
         }
     },
     logo: {
