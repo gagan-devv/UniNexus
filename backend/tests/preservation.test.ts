@@ -180,17 +180,17 @@ describe('Property 2: Preservation - Test Logic and Runtime Behavior', () => {
    * Preservation Requirement 3.3: Unique key generation format
    * 
    * The MediaService must continue to generate keys in the format:
-   * prefix/id/timestamp-random.extension
+   * prefix/id/timestamp-random.webp
    * 
    * Where:
    * - prefix: 'profiles', 'clubs', or 'events'
    * - id: user/club/event identifier
    * - timestamp: Date.now() value
    * - random: 16-character hex string (8 bytes)
-   * - extension: extracted from original filename
+   * - extension: always .webp for optimized web delivery
    */
   describe('Preservation: Unique key generation format (Req 3.3)', () => {
-    it('should preserve key format: prefix/id/timestamp-random.extension', () => {
+    it('should preserve key format: prefix/id/timestamp-random.webp', () => {
       fc.assert(
         fc.property(
           fc.constantFrom('profiles', 'clubs', 'events'),
@@ -199,9 +199,8 @@ describe('Property 2: Preservation - Test Logic and Runtime Behavior', () => {
           (prefix, id, filename) => {
             const key = mediaService.generateUniqueKey(prefix, id, filename);
             
-            // Preservation: Key must follow the format pattern
-            const extension = filename.split('.').pop();
-            const pattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/.+/\\d+-[a-f0-9]{16}\\.${extension}$`);
+            // Preservation: Key must follow the format pattern with .webp extension
+            const pattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/.+/\\d+-[a-f0-9]{16}\\.webp$`);
             expect(key).toMatch(pattern);
             
             // Preservation: Key must contain the prefix and id
@@ -227,10 +226,9 @@ describe('Property 2: Preservation - Test Logic and Runtime Behavior', () => {
             // Preservation: Keys must be unique even with same inputs
             expect(key1).not.toBe(key2);
             
-            // Both keys should have valid format
-            const extension = filename.split('.').pop() || 'jpg';
-            expect(key1).toMatch(/\/\d+-[a-f0-9]{16}\./);
-            expect(key2).toMatch(/\/\d+-[a-f0-9]{16}\./);
+            // Both keys should have valid format with .webp extension
+            expect(key1).toMatch(/\/\d+-[a-f0-9]{16}\.webp$/);
+            expect(key2).toMatch(/\/\d+-[a-f0-9]{16}\.webp$/);
           }
         ),
         { numRuns: 50 }

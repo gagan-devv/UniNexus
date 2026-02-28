@@ -42,7 +42,7 @@ export class MediaService {
     if (file.size > MAX_FILE_SIZE) {
       return {
         isValid: false,
-        error: `File size exceeds maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+        error: `File size exceeds maximum allowed size of ${MAX_FILE_SIZE / (1024 * 1024)}MB`
       };
     }
 
@@ -51,20 +51,24 @@ export class MediaService {
 
   /**
    * Generate unique S3 key with timestamp
+   * Always uses .webp extension for optimized web delivery
    */
   generateUniqueKey(prefix: string, userId: string, filename: string): string {
     const timestamp = Date.now();
     const randomString = crypto.randomBytes(8).toString('hex');
-    const extension = filename.split('.').pop() || 'jpg';
-    return `${prefix}/${userId}/${timestamp}-${randomString}.${extension}`;
+    return `${prefix}/${userId}/${timestamp}-${randomString}.webp`;
   }
 
   /**
    * Upload file to S3
    */
   private async uploadToS3(key: string, buffer: Buffer, contentType: string): Promise<void> {
-    if (!this.s3Client || !this.bucketName) {
-      throw new Error('S3 client or bucket name not configured');
+    if (!this.s3Client) {
+      throw new Error('S3 client not configured');
+    }
+    
+    if (!this.bucketName) {
+      throw new Error('S3 bucket name not configured');
     }
 
     const command = new PutObjectCommand({
@@ -82,13 +86,13 @@ export class MediaService {
    * Upload profile picture
    */
   async uploadProfilePicture(userId: string, file: Express.Multer.File): Promise<UploadResult> {
-    try {
-      // Validate file
-      const validation = this.validateImageFile(file);
-      if (!validation.isValid) {
-        throw new Error(validation.error);
-      }
+    // Validate file
+    const validation = this.validateImageFile(file);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
 
+    try {
       // Generate unique key
       const s3Key = this.generateUniqueKey('profiles', userId, file.originalname);
 
@@ -97,6 +101,11 @@ export class MediaService {
 
       return { s3Key };
     } catch (error) {
+      // Re-throw configuration errors directly
+      if (error instanceof Error && error.message.includes('not configured')) {
+        throw error;
+      }
+      
       logger.error('Profile picture upload error:', error instanceof Error ? error.message : String(error));
       throw new Error(`Failed to upload profile picture: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -106,13 +115,13 @@ export class MediaService {
    * Upload club logo
    */
   async uploadClubLogo(clubId: string, file: Express.Multer.File): Promise<UploadResult> {
-    try {
-      // Validate file
-      const validation = this.validateImageFile(file);
-      if (!validation.isValid) {
-        throw new Error(validation.error);
-      }
+    // Validate file
+    const validation = this.validateImageFile(file);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
 
+    try {
       // Generate unique key
       const s3Key = this.generateUniqueKey('clubs', clubId, file.originalname);
 
@@ -121,6 +130,11 @@ export class MediaService {
 
       return { s3Key };
     } catch (error) {
+      // Re-throw configuration errors directly
+      if (error instanceof Error && error.message.includes('not configured')) {
+        throw error;
+      }
+      
       logger.error('Club logo upload error:', error instanceof Error ? error.message : String(error));
       throw new Error(`Failed to upload club logo: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -130,13 +144,13 @@ export class MediaService {
    * Upload event poster
    */
   async uploadEventPoster(eventId: string, file: Express.Multer.File): Promise<UploadResult> {
-    try {
-      // Validate file
-      const validation = this.validateImageFile(file);
-      if (!validation.isValid) {
-        throw new Error(validation.error);
-      }
+    // Validate file
+    const validation = this.validateImageFile(file);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
 
+    try {
       // Generate unique key
       const s3Key = this.generateUniqueKey('events', eventId, file.originalname);
 
@@ -145,6 +159,11 @@ export class MediaService {
 
       return { s3Key };
     } catch (error) {
+      // Re-throw configuration errors directly
+      if (error instanceof Error && error.message.includes('not configured')) {
+        throw error;
+      }
+      
       logger.error('Event poster upload error:', error instanceof Error ? error.message : String(error));
       throw new Error(`Failed to upload event poster: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -155,8 +174,12 @@ export class MediaService {
    */
   async getPresignedUrl(s3Key: string, expiresIn: number = 3600): Promise<string> {
     try {
-      if (!this.s3Client || !this.bucketName) {
-        throw new Error('S3 client or bucket name not configured');
+      if (!this.s3Client) {
+        throw new Error('S3 client not configured');
+      }
+      
+      if (!this.bucketName) {
+        throw new Error('S3 bucket name not configured');
       }
 
       const command = new GetObjectCommand({
