@@ -22,11 +22,25 @@ api.interceptors.request.use(
   }
 );
 
+// Helper function for exponential backoff delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to check if error is a network error
+const isNetworkError = (error) => {
+  return !error.response && error.code !== 'ECONNABORTED';
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // If no original request config, can't handle retries or other logic
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    // Handle 401 Unauthorized - attempt token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -47,7 +61,62 @@ api.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
+    }
+
+    // Handle 403 Forbidden
+    if (error.response?.status === 403) {
+      const errorMessage = 'Access denied. You do not have permission to perform this action.';
+      error.userMessage = errorMessage;
+      return Promise.reject(error);
+    }
+
+    // Handle 404 Not Found
+    if (error.response?.status === 404) {
+      const errorMessage = 'Resource not found. The requested item does not exist.';
+      error.userMessage = errorMessage;
+      return Promise.reject(error);
+    }
+
+    // Handle 500 Internal Server Error
+    if (error.response?.status === 500) {
+      const errorMessage = 'Server error. Please try again later.';
+      error.userMessage = errorMessage;
+      return Promise.reject(error);
+    }
+
+    // Handle network errors with retry
+    if (isNetworkError(error)) {
+      // Initialize retry count if not set
+      if (originalRequest._retryCount === undefined) {
+        originalRequest._retryCount = 0;
+      }
+      
+      // Check if we should retry (max 3 retries)
+      if (originalRequest._retryCount < 3) {
+        originalRequest._retryCount++;
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const delayMs = Math.pow(2, originalRequest._retryCount - 1) * 1000;
+        await delay(delayMs);
+        
+        // Retry the request
+        return api(originalRequest);
+      } else {
+        // Max retries reached
+        const errorMessage = 'Network error. Please check your connection and try again.';
+        error.userMessage = errorMessage;
+        return Promise.reject(error);
+      }
+    }
+
+    // Handle 400 Bad Request with validation errors
+    if (error.response?.status === 400 && error.response?.data?.errors) {
+      // Pass through validation errors from API
+      error.userMessage = 'Validation failed';
+      error.validationErrors = error.response.data.errors;
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
