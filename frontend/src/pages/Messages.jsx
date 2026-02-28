@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { MessageSquare, Send, Plus, X, Loader2, User } from 'lucide-react';
 import { messageAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +9,7 @@ import ImageDisplay from '../components/common/ImageDisplay';
 
 const Messages = () => {
   const { user } = useAuth();
+  const { conversationId } = useParams();
   
   // State management
   const [conversations, setConversations] = useState([]);
@@ -72,6 +74,17 @@ const Messages = () => {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  // Auto-select conversation from URL parameter
+  useEffect(() => {
+    if (conversationId && conversations.length > 0) {
+      const conversation = conversations.find(c => c._id === conversationId);
+      if (conversation) {
+        setSelectedConversation(conversation);
+        fetchMessages(conversationId);
+      }
+    }
+  }, [conversationId, conversations, fetchMessages]);
 
   // Set up polling for new messages
   useEffect(() => {

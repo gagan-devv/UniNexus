@@ -19,6 +19,23 @@ import ImageUpload from '../components/common/ImageUpload';
 import ImageDisplay from '../components/common/ImageDisplay';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
+import CustomSelect from '../components/common/CustomSelect';
+
+const CATEGORY_OPTIONS = [
+  { value: 'Academic', label: 'Academic' },
+  { value: 'Arts & Culture', label: 'Arts & Culture' },
+  { value: 'Business & Entrepreneurship', label: 'Business & Entrepreneurship' },
+  { value: 'Community Service', label: 'Community Service' },
+  { value: 'Environmental', label: 'Environmental' },
+  { value: 'Health & Wellness', label: 'Health & Wellness' },
+  { value: 'Hobby & Interest', label: 'Hobby & Interest' },
+  { value: 'Political', label: 'Political' },
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Religious & Spiritual', label: 'Religious & Spiritual' },
+  { value: 'Sports & Recreation', label: 'Sports & Recreation' },
+  { value: 'Technology', label: 'Technology' },
+  { value: 'Other', label: 'Other' }
+];
 
 const MyClub = () => {
   const { user } = useAuth();
@@ -34,6 +51,7 @@ const MyClub = () => {
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
+    email: '',
     category: '',
     foundedYear: '',
     socialLinks: {
@@ -55,8 +73,8 @@ const MyClub = () => {
     setError(null);
 
     try {
-      // Get the user's club profile
-      const response = await clubAPI.getById(user?.clubId || 'me');
+      // Get the user's club profile using the /me endpoint
+      const response = await clubAPI.getById('me');
       const data = response?.data?.data;
       
       // Check if data is null (no club profile found)
@@ -72,6 +90,7 @@ const MyClub = () => {
       setEditForm({
         name: data.name || '',
         description: data.description || '',
+        email: data.email || '',
         category: data.category || '',
         foundedYear: data.foundedYear || '',
         socialLinks: {
@@ -179,13 +198,159 @@ const MyClub = () => {
   if (!clubData) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            No Club Profile Found
+            Create Your Club Profile
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            You don't have a club profile yet. Please create one to access this page.
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            You don't have a club profile yet. Fill out the form below to create one.
           </p>
+
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            setSaving(true);
+            setError(null);
+
+            try {
+              // Prepare data with proper types
+              const clubData = {
+                name: editForm.name.trim(),
+                description: editForm.description.trim(),
+                email: editForm.email.trim(),
+                category: editForm.category,
+                foundedYear: parseInt(editForm.foundedYear),
+                socialLinks: editForm.socialLinks
+              };
+
+              const response = await clubAPI.create(clubData);
+              const newClub = response?.data?.data;
+              setClubData(newClub);
+              setSuccessMessage('Club profile created successfully!');
+              setTimeout(() => setSuccessMessage(null), 3000);
+            } catch (err) {
+              console.error('Error creating club:', err);
+              
+              // Handle validation errors
+              if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+                setError(err.response.data.errors.join('. '));
+              } else {
+                setError(err.response?.data?.message || 'Failed to create club profile. Please try again.');
+              }
+            } finally {
+              setSaving(false);
+            }
+          }} className="space-y-4">
+            <div>
+              <label htmlFor="new-club-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Club Name *
+              </label>
+              <input
+                id="new-club-name"
+                type="text"
+                required
+                minLength={2}
+                maxLength={100}
+                value={editForm.name}
+                onChange={(e) => handleFormChange('name', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Enter your club name"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {editForm.name.length}/100 characters (minimum 2)
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="new-club-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Description *
+              </label>
+              <textarea
+                id="new-club-description"
+                required
+                minLength={10}
+                maxLength={1000}
+                value={editForm.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Describe your club's mission and activities..."
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {editForm.description.length}/1000 characters (minimum 10)
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="new-club-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Contact Email *
+              </label>
+              <input
+                id="new-club-email"
+                type="email"
+                required
+                value={editForm.email}
+                onChange={(e) => handleFormChange('email', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="club@university.edu"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="new-club-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Category *
+                </label>
+                <CustomSelect
+                  id="new-club-category"
+                  value={editForm.category}
+                  onChange={(e) => handleFormChange('category', e.target.value)}
+                  options={CATEGORY_OPTIONS}
+                  placeholder="Select a category"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="new-club-founded-year" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Founded Year *
+                </label>
+                <input
+                  id="new-club-founded-year"
+                  type="number"
+                  required
+                  min="1800"
+                  max={new Date().getFullYear()}
+                  value={editForm.foundedYear}
+                  onChange={(e) => handleFormChange('foundedYear', parseInt(e.target.value) || '')}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder={new Date().getFullYear().toString()}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Year between 1800 and {new Date().getFullYear()}
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mt-4">
+                <ErrorMessage message={error} />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating Club...
+                </>
+              ) : (
+                'Create Club Profile'
+              )}
+            </button>
+          </form>
         </div>
       </div>
     );

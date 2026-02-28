@@ -41,6 +41,9 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
     // Upload to S3
     const result = await mediaService.uploadProfilePicture(req.user._id.toString(), req.file);
 
+    // Generate presigned URL for immediate use
+    const presignedUrl = await mediaService.getPresignedUrl(result.s3Key, 3600);
+
     // Update user document
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -48,7 +51,8 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
         profilePicture: {
           s3Key: result.s3Key,
           uploadedAt: new Date()
-        }
+        },
+        avatarUrl: presignedUrl
       },
       { new: true }
     ).select('-password -refreshToken');
@@ -72,7 +76,8 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
       message: 'Profile picture uploaded successfully',
       data: {
         s3Key: result.s3Key,
-        imageUrl: result.s3Key // Frontend will use this to fetch presigned URL
+        imageUrl: presignedUrl,
+        url: presignedUrl
       }
     });
   } catch (error) {
@@ -143,11 +148,15 @@ export const uploadClubLogo = async (req: AuthenticatedRequest, res: Response): 
     // Upload to S3
     const result = await mediaService.uploadClubLogo(clubId, req.file);
 
+    // Generate presigned URL for immediate use
+    const presignedUrl = await mediaService.getPresignedUrl(result.s3Key, 3600);
+
     // Update club document
     club.logo = {
       s3Key: result.s3Key,
       uploadedAt: new Date()
     };
+    club.logoUrl = presignedUrl; // Store presigned URL for immediate access
     await club.save();
 
     // Invalidate club cache
@@ -161,7 +170,8 @@ export const uploadClubLogo = async (req: AuthenticatedRequest, res: Response): 
       message: 'Club logo uploaded successfully',
       data: {
         s3Key: result.s3Key,
-        imageUrl: result.s3Key
+        imageUrl: presignedUrl,
+        url: presignedUrl
       }
     });
   } catch (error) {
@@ -242,11 +252,15 @@ export const uploadEventPoster = async (req: AuthenticatedRequest, res: Response
     // Upload to S3
     const result = await mediaService.uploadEventPoster(eventId, req.file);
 
+    // Generate presigned URL for immediate use
+    const presignedUrl = await mediaService.getPresignedUrl(result.s3Key, 3600);
+
     // Update event document
     event.poster = {
       s3Key: result.s3Key,
       uploadedAt: new Date()
     };
+    event.posterUrl = presignedUrl;
     await event.save();
 
     // Invalidate event cache
@@ -260,7 +274,8 @@ export const uploadEventPoster = async (req: AuthenticatedRequest, res: Response
       message: 'Event poster uploaded successfully',
       data: {
         s3Key: result.s3Key,
-        imageUrl: result.s3Key
+        imageUrl: presignedUrl,
+        url: presignedUrl
       }
     });
   } catch (error) {

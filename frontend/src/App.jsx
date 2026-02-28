@@ -123,6 +123,14 @@ function App() {
                     } 
                   />
                   <Route 
+                    path="/messages/:conversationId" 
+                    element={
+                      <ProtectedRoute>
+                        <Messages />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
                     path="/settings" 
                     element={
                       <ProtectedRoute>

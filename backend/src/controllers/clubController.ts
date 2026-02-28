@@ -150,6 +150,58 @@ const getAllClubs = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
+const getMyClub = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        // Check cache first
+        const cacheService = getCacheService();
+        const cacheKey = cacheService.generateKey('clubs', 'my', req.user._id.toString());
+        const cachedData = await cacheService.get(cacheKey);
+        
+        if (cachedData) {
+            logger.debug(`Returning cached my club data for user ${req.user._id}`);
+            res.json({
+                success: true,
+                data: cachedData
+            });
+            return;
+        }
+
+        // Cache miss - query database
+        const club = await ClubProfile.findOne({ user: req.user._id }).populate('user', 'username email');
+        
+        // Return null if no club found (user hasn't created a club yet)
+        if (!club) {
+            res.json({
+                success: true,
+                data: null
+            });
+            return;
+        }
+
+        // Store in cache with 600s TTL
+        await cacheService.set(cacheKey, club, 600);
+
+        res.json({
+            success: true,
+            data: club
+        });
+    } catch (error) {
+        logger.error('Error getting my club:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
 const getClubById = async (req: Request, res: Response): Promise<void> => {
     try {
         const clubId = req.params.id;
@@ -525,4 +577,4 @@ const getClubEvents = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-export { registerClub, getAllClubs, getClubById, updateClub, deleteClub, joinClub, leaveClub, getClubMembers, getClubEvents };
+export { registerClub, getAllClubs, getMyClub, getClubById, updateClub, deleteClub, joinClub, leaveClub, getClubMembers, getClubEvents };
