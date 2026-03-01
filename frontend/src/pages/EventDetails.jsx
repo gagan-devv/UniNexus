@@ -107,19 +107,27 @@ const EventDetails = () => {
       return;
     }
 
+    // Optimistic update
+    const previousHasRsvp = hasRsvp;
+    const previousAttendeeCount = attendeeCount;
+    const previousAttendees = [...attendees];
+    
+    setHasRsvp(true);
+    setAttendeeCount(prev => prev + 1);
+    setAttendees(prev => [...prev, {
+      id: user._id,
+      name: `${user.firstName} ${user.lastName}`,
+      avatar: user.avatarUrl || null
+    }]);
+
     try {
       setRsvpLoading(true);
       await rsvpAPI.create(id, 'going');
-      setHasRsvp(true);
-      setAttendeeCount(prev => prev + 1);
-      
-      // Add current user to attendees list
-      setAttendees(prev => [...prev, {
-        id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        avatar: user.avatarUrl || null
-      }]);
     } catch (err) {
+      // Rollback on error
+      setHasRsvp(previousHasRsvp);
+      setAttendeeCount(previousAttendeeCount);
+      setAttendees(previousAttendees);
       console.error('Error creating RSVP:', err);
       setError(err.response?.data?.message || 'Failed to RSVP');
     } finally {
@@ -128,15 +136,23 @@ const EventDetails = () => {
   };
 
   const handleCancelRsvp = async () => {
+    // Optimistic update
+    const previousHasRsvp = hasRsvp;
+    const previousAttendeeCount = attendeeCount;
+    const previousAttendees = [...attendees];
+    
+    setHasRsvp(false);
+    setAttendeeCount(prev => Math.max(0, prev - 1));
+    setAttendees(prev => prev.filter(attendee => attendee.id !== user._id));
+
     try {
       setRsvpLoading(true);
       await rsvpAPI.delete(id);
-      setHasRsvp(false);
-      setAttendeeCount(prev => Math.max(0, prev - 1));
-      
-      // Remove current user from attendees list
-      setAttendees(prev => prev.filter(attendee => attendee.id !== user._id));
     } catch (err) {
+      // Rollback on error
+      setHasRsvp(previousHasRsvp);
+      setAttendeeCount(previousAttendeeCount);
+      setAttendees(previousAttendees);
       console.error('Error canceling RSVP:', err);
       setError(err.response?.data?.message || 'Failed to cancel RSVP');
     } finally {

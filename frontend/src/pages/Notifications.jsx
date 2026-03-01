@@ -60,18 +60,21 @@ const Notifications = () => {
 
   // Mark notification as read and navigate
   const handleNotificationClick = async (notification) => {
-    // Mark as read if unread
+    // Optimistic update - mark as read immediately
     if (!notification.read) {
+      const previousNotifications = [...notifications];
+      
+      setNotifications(prev =>
+        prev.map(n =>
+          n._id === notification._id ? { ...n, read: true } : n
+        )
+      );
+
       try {
         await notificationAPI.markAsRead(notification._id);
-        
-        // Update local state
-        setNotifications(prev =>
-          prev.map(n =>
-            n._id === notification._id ? { ...n, read: true } : n
-          )
-        );
       } catch (err) {
+        // Rollback on error
+        setNotifications(previousNotifications);
         console.error('Error marking notification as read:', err);
       }
     }
@@ -110,14 +113,18 @@ const Notifications = () => {
   const handleMarkAllAsRead = async () => {
     setMarkingAllAsRead(true);
     
+    // Optimistic update - mark all as read immediately
+    const previousNotifications = [...notifications];
+    
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, read: true }))
+    );
+    
     try {
       await notificationAPI.markAllAsRead();
-      
-      // Update all notifications to read
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, read: true }))
-      );
     } catch (err) {
+      // Rollback on error
+      setNotifications(previousNotifications);
       console.error('Error marking all as read:', err);
       setError(err.response?.data?.message || 'Failed to mark all as read. Please try again.');
     } finally {

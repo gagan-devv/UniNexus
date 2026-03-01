@@ -5,6 +5,7 @@ const ImageDisplay = ({
   altText = 'Image',
   size = 'md',
   className = '',
+  lazy = true, // Enable lazy loading by default
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -40,6 +41,7 @@ const ImageDisplay = ({
       <img
         src={displayUrl}
         alt={altText}
+        loading={lazy ? 'lazy' : 'eager'}
         onLoad={handleImageLoad}
         onError={handleImageError}
         className={`${sizeClasses[size]} object-cover rounded ${
