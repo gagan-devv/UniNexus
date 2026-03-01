@@ -6,6 +6,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import ImageDisplay from '../components/common/ImageDisplay';
+import VirtualList from '../components/common/VirtualList';
 
 const Discover = () => {
   const navigate = useNavigate();
@@ -220,48 +221,99 @@ const Discover = () => {
               </h2>
               
               {results.events.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {results.events.map((event) => (
-                    <div
-                      key={event._id}
-                      onClick={() => handleEventClick(event._id)}
-                      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-                    >
-                      <ImageDisplay
-                        imageUrl={event.posterUrl}
-                        altText={event.title}
-                        className="w-full h-48 object-cover"
-                      />
-                      
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-semibold rounded-full">
-                            {event.category}
-                          </span>
-                        </div>
+                results.events.length > 50 ? (
+                  // Use virtual scrolling for large lists
+                  <VirtualList
+                    items={results.events}
+                    itemHeight={400}
+                    containerHeight={800}
+                    renderItem={(event) => (
+                      <div className="px-2 pb-6">
+                        <div
+                          onClick={() => handleEventClick(event._id)}
+                          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer overflow-hidden h-full"
+                        >
+                          <ImageDisplay
+                            imageUrl={event.posterUrl}
+                            altText={event.title}
+                            className="w-full h-48 object-cover"
+                          />
+                          
+                          <div className="p-6">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-semibold rounded-full">
+                                {event.category}
+                              </span>
+                            </div>
 
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
-                          {event.title}
-                        </h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                              {event.title}
+                            </h3>
 
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-                          {event.description}
-                        </p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                              {event.description}
+                            </p>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            {formatDate(event.startTime)} at {formatTime(event.startTime)}
-                          </div>
-                          <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            {event.location}
+                            <div className="space-y-2">
+                              <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                {formatDate(event.startTime)} at {formatTime(event.startTime)}
+                              </div>
+                              <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                                <MapPin className="h-4 w-4 mr-2" />
+                                {event.location}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  />
+                ) : (
+                  // Use regular grid for smaller lists
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {results.events.map((event) => (
+                      <div
+                        key={event._id}
+                        onClick={() => handleEventClick(event._id)}
+                        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                      >
+                        <ImageDisplay
+                          imageUrl={event.posterUrl}
+                          altText={event.title}
+                          className="w-full h-48 object-cover"
+                        />
+                        
+                        <div className="p-6">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-semibold rounded-full">
+                              {event.category}
+                            </span>
+                          </div>
+
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                            {event.title}
+                          </h3>
+
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                            {event.description}
+                          </p>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                              <Calendar className="h-4 w-4 mr-2" />
+                              {formatDate(event.startTime)} at {formatTime(event.startTime)}
+                            </div>
+                            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                              <MapPin className="h-4 w-4 mr-2" />
+                              {event.location}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -279,42 +331,87 @@ const Discover = () => {
               </h2>
               
               {results.clubs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {results.clubs.map((club) => (
-                    <div
-                      key={club._id}
-                      onClick={() => handleClubClick(club._id)}
-                      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-start gap-4 mb-4">
-                          <ImageDisplay
-                            imageUrl={club.logoUrl}
-                            altText={club.name}
-                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">
-                              {club.name}
-                            </h3>
-                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-semibold rounded-full">
-                              {club.category}
-                            </span>
+                results.clubs.length > 50 ? (
+                  // Use virtual scrolling for large lists
+                  <VirtualList
+                    items={results.clubs}
+                    itemHeight={250}
+                    containerHeight={800}
+                    renderItem={(club) => (
+                      <div className="px-2 pb-6">
+                        <div
+                          onClick={() => handleClubClick(club._id)}
+                          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer overflow-hidden h-full"
+                        >
+                          <div className="p-6">
+                            <div className="flex items-start gap-4 mb-4">
+                              <ImageDisplay
+                                imageUrl={club.logoUrl}
+                                altText={club.name}
+                                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">
+                                  {club.name}
+                                </h3>
+                                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-semibold rounded-full">
+                                  {club.category}
+                                </span>
+                              </div>
+                            </div>
+
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
+                              {club.description}
+                            </p>
+
+                            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                              <Users className="h-4 w-4 mr-2" />
+                              {club.memberCount || 0} members
+                            </div>
                           </div>
                         </div>
+                      </div>
+                    )}
+                  />
+                ) : (
+                  // Use regular grid for smaller lists
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {results.clubs.map((club) => (
+                      <div
+                        key={club._id}
+                        onClick={() => handleClubClick(club._id)}
+                        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-start gap-4 mb-4">
+                            <ImageDisplay
+                              imageUrl={club.logoUrl}
+                              altText={club.name}
+                              className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">
+                                {club.name}
+                              </h3>
+                              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-semibold rounded-full">
+                                {club.category}
+                              </span>
+                            </div>
+                          </div>
 
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-                          {club.description}
-                        </p>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
+                            {club.description}
+                          </p>
 
-                        <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
-                          <Users className="h-4 w-4 mr-2" />
-                          {club.memberCount || 0} members
+                          <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                            <Users className="h-4 w-4 mr-2" />
+                            {club.memberCount || 0} members
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />

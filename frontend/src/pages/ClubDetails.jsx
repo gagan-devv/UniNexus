@@ -89,19 +89,27 @@ const ClubDetails = () => {
       return;
     }
 
+    // Optimistic update
+    const previousIsMember = isMember;
+    const previousMemberCount = memberCount;
+    const previousMembers = [...members];
+    
+    setIsMember(true);
+    setMemberCount(prev => prev + 1);
+    setMembers(prev => [...prev, {
+      id: user._id,
+      name: `${user.firstName} ${user.lastName}`,
+      avatar: user.avatarUrl || null
+    }]);
+
     try {
       setMembershipLoading(true);
       await clubAPI.join(id);
-      setIsMember(true);
-      setMemberCount(prev => prev + 1);
-      
-      // Add current user to members list
-      setMembers(prev => [...prev, {
-        id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        avatar: user.avatarUrl || null
-      }]);
     } catch (err) {
+      // Rollback on error
+      setIsMember(previousIsMember);
+      setMemberCount(previousMemberCount);
+      setMembers(previousMembers);
       console.error('Error joining club:', err);
       setError(err.response?.data?.message || 'Failed to join club');
     } finally {
@@ -110,15 +118,23 @@ const ClubDetails = () => {
   };
 
   const handleLeaveClub = async () => {
+    // Optimistic update
+    const previousIsMember = isMember;
+    const previousMemberCount = memberCount;
+    const previousMembers = [...members];
+    
+    setIsMember(false);
+    setMemberCount(prev => Math.max(0, prev - 1));
+    setMembers(prev => prev.filter(member => member.id !== user._id));
+
     try {
       setMembershipLoading(true);
       await clubAPI.leave(id);
-      setIsMember(false);
-      setMemberCount(prev => Math.max(0, prev - 1));
-      
-      // Remove current user from members list
-      setMembers(prev => prev.filter(member => member.id !== user._id));
     } catch (err) {
+      // Rollback on error
+      setIsMember(previousIsMember);
+      setMemberCount(previousMemberCount);
+      setMembers(previousMembers);
       console.error('Error leaving club:', err);
       setError(err.response?.data?.message || 'Failed to leave club');
     } finally {

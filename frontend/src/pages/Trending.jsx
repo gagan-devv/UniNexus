@@ -5,6 +5,7 @@ import { trendingAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import ImageDisplay from '../components/common/ImageDisplay';
+import VirtualList from '../components/common/VirtualList';
 
 const Trending = () => {
   const navigate = useNavigate();
