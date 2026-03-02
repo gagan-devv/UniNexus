@@ -577,4 +577,378 @@ const getClubEvents = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-export { registerClub, getAllClubs, getMyClub, getClubById, updateClub, deleteClub, joinClub, leaveClub, getClubMembers, getClubEvents };
+/**
+ * Add a member to a club (admin only)
+ */
+const addClubMember = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const clubId = req.params.id;
+        const { userId } = req.body;
+
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Check if user exists
+        const { User } = await import('../models/User');
+        const targetUser = await User.findById(userId);
+        if (!targetUser) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+            return;
+        }
+
+        // Check if user is already a member
+        const existingMembership = await ClubMember.findOne({
+            userId: userId,
+            clubId: clubId
+        });
+
+        if (existingMembership) {
+            res.status(409).json({
+                success: false,
+                message: 'User is already a member of this club'
+            });
+            return;
+        }
+
+        // Add user as member with role 'member'
+        await ClubMember.create({
+            userId: userId,
+            clubId: clubId,
+            role: 'member'
+        });
+
+        // Update member count
+        await ClubProfile.findByIdAndUpdate(clubId, {
+            $inc: { memberCount: 1, 'stats.memberCount': 1 }
+        });
+
+        // Create audit log entry
+        const { AuditLog } = await import('../models/AuditLog');
+        await AuditLog.create({
+            action: 'member_added',
+            actorId: req.user._id,
+            targetUserId: userId,
+            clubId: clubId,
+            details: {
+                role: 'member'
+            }
+        });
+
+        // Get updated member list
+        const members = await ClubMember.find({ clubId })
+            .populate('userId', 'username firstName lastName avatarUrl')
+            .sort({ joinedAt: -1 });
+
+        // Invalidate club cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateClubs();
+
+        res.status(201).json({
+            success: true,
+            message: 'Member added successfully',
+            data: {
+                members
+            }
+        });
+    } catch (error) {
+        logger.error('Error adding club member:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+/**
+ * Remove a member from a club (admin only)
+ */
+const removeClubMember = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const clubId = req.params.id;
+        const targetUserId = req.params.userId;
+
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        if (!targetUserId || Array.isArray(targetUserId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid User ID is required'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Check if member exists in club
+        const membership = await ClubMember.findOne({
+            userId: targetUserId,
+            clubId: clubId
+        });
+
+        if (!membership) {
+            res.status(404).json({
+                success: false,
+                message: 'User is not a member of this club'
+            });
+            return;
+        }
+
+        // Prevent removing last admin
+        if (membership.role === 'admin') {
+            const adminCount = await ClubMember.countDocuments({
+                clubId: clubId,
+                role: 'admin'
+            });
+
+            if (adminCount <= 1) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Cannot remove the last admin from the club'
+                });
+                return;
+            }
+        }
+
+        // Remove member
+        await ClubMember.findByIdAndDelete(membership._id);
+
+        // Update member count
+        await ClubProfile.findByIdAndUpdate(clubId, {
+            $inc: { memberCount: -1, 'stats.memberCount': -1 }
+        });
+
+        // Ensure counts don't go negative
+        await ClubProfile.findByIdAndUpdate(clubId, {
+            $max: { memberCount: 0, 'stats.memberCount': 0 }
+        });
+
+        // Create audit log entry
+        const { AuditLog } = await import('../models/AuditLog');
+        await AuditLog.create({
+            action: 'member_removed',
+            actorId: req.user._id,
+            targetUserId: targetUserId,
+            clubId: clubId,
+            details: {
+                previousRole: membership.role
+            }
+        });
+
+        // Get updated member list
+        const members = await ClubMember.find({ clubId })
+            .populate('userId', 'username firstName lastName avatarUrl')
+            .sort({ joinedAt: -1 });
+
+        // Invalidate club cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateClubs();
+
+        res.json({
+            success: true,
+            message: 'Member removed successfully',
+            data: {
+                members
+            }
+        });
+    } catch (error) {
+        logger.error('Error removing club member:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+/**
+ * Update a member's role (admin only)
+ */
+const updateMemberRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const clubId = req.params.id;
+        const targetUserId = req.params.userId;
+        const { role } = req.body;
+
+        if (!clubId || Array.isArray(clubId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid Club ID is required'
+            });
+            return;
+        }
+
+        if (!targetUserId || Array.isArray(targetUserId)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid User ID is required'
+            });
+            return;
+        }
+
+        if (!role || !['admin', 'member'].includes(role)) {
+            res.status(400).json({
+                success: false,
+                message: 'Valid role is required (admin or member)'
+            });
+            return;
+        }
+
+        // Check if club exists
+        const club = await ClubProfile.findById(clubId);
+        if (!club) {
+            res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+            return;
+        }
+
+        // Check if member exists in club
+        const membership = await ClubMember.findOne({
+            userId: targetUserId,
+            clubId: clubId
+        });
+
+        if (!membership) {
+            res.status(404).json({
+                success: false,
+                message: 'User is not a member of this club'
+            });
+            return;
+        }
+
+        // Prevent removing last admin (if changing admin to member)
+        if (membership.role === 'admin' && role === 'member') {
+            const adminCount = await ClubMember.countDocuments({
+                clubId: clubId,
+                role: 'admin'
+            });
+
+            if (adminCount <= 1) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Cannot change role of the last admin'
+                });
+                return;
+            }
+        }
+
+        const previousRole = membership.role;
+
+        // Update member role
+        membership.role = role;
+        await membership.save();
+
+        // Create audit log entry
+        const { AuditLog } = await import('../models/AuditLog');
+        await AuditLog.create({
+            action: 'role_changed',
+            actorId: req.user._id,
+            targetUserId: targetUserId,
+            clubId: clubId,
+            details: {
+                previousRole,
+                newRole: role
+            }
+        });
+
+        // Get updated member information
+        const updatedMember = await ClubMember.findById(membership._id)
+            .populate('userId', 'username firstName lastName avatarUrl');
+
+        // Invalidate club cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateClubs();
+
+        res.json({
+            success: true,
+            message: 'Member role updated successfully',
+            data: updatedMember
+        });
+    } catch (error) {
+        logger.error('Error updating member role:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+export { 
+    registerClub, 
+    getAllClubs, 
+    getMyClub, 
+    getClubById, 
+    updateClub, 
+    deleteClub, 
+    joinClub, 
+    leaveClub, 
+    getClubMembers, 
+    getClubEvents,
+    addClubMember,
+    removeClubMember,
+    updateMemberRole
+};

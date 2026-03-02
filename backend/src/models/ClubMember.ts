@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IClubMember extends Document {
     userId: mongoose.Types.ObjectId;
     clubId: mongoose.Types.ObjectId;
+    role: 'admin' | 'member';
     joinedAt: Date;
 }
 
@@ -16,6 +17,13 @@ const ClubMemberSchema = new Schema<IClubMember>({
     clubId: {
         type: Schema.Types.ObjectId,
         ref: 'ClubProfile',
+        required: true,
+        index: true
+    },
+    role: {
+        type: String,
+        enum: ['admin', 'member'],
+        default: 'member',
         required: true,
         index: true
     },
