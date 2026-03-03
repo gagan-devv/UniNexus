@@ -1,5 +1,5 @@
-import { FixedSizeList } from 'react-window';
-
+import * as ReactWindow from 'react-window';
+const { FixedSizeList } = ReactWindow;
 /**
  * VirtualList component for efficiently rendering large lists using react-window
  * Only renders items visible in the viewport plus a buffer
