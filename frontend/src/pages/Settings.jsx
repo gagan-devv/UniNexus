@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Lock, Bell, Shield, Check, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Bell, Shield, Check, Loader2, User } from 'lucide-react';
 import { settingsAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
+import ProfilePictureUpload from '../components/specific/ProfilePictureUpload';
+import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
+  const { user, setUser } = useAuth();
+
   // State management
   const [settings, setSettings] = useState({
     notifications: {
@@ -160,6 +164,15 @@ const Settings = () => {
     fetchSettings();
   };
 
+  // Handle profile picture upload success
+  const handleAvatarUploadSuccess = (newAvatarUrl) => {
+    // Update user context with new avatar URL
+    setUser((prevUser) => ({
+      ...prevUser,
+      avatarUrl: newAvatarUrl,
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -195,6 +208,20 @@ const Settings = () => {
           <p className="text-sm text-green-700">{successMessage}</p>
         </div>
       )}
+
+      {/* Profile Picture Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div className="flex items-center gap-3 mb-6">
+          <User className="h-6 w-6 text-blue-600" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Profile Picture
+          </h2>
+        </div>
+        <ProfilePictureUpload
+          currentAvatarUrl={user?.avatarUrl}
+          onUploadSuccess={handleAvatarUploadSuccess}
+        />
+      </div>
 
       {/* Notification Preferences */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { User, Mail, Calendar, Shield, Save } from 'lucide-react';
+import ImageDisplay from '../components/common/ImageDisplay';
 
 const Profile = () => {
   const { user, setUser } = useAuth();
@@ -73,9 +74,18 @@ const Profile = () => {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
         {/* User Info Header */}
         <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
-          <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-            <User className="h-12 w-12 text-blue-600 dark:text-blue-400" />
-          </div>
+          {user?.avatarUrl ? (
+            <ImageDisplay
+              imageUrl={user.avatarUrl}
+              altText={`${user.firstName} ${user.lastName}`}
+              size="lg"
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+              <User className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+            </div>
+          )}
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {user?.firstName} {user?.lastName}
