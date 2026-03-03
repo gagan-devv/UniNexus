@@ -28,9 +28,18 @@ router.post(
   uploadClubLogo
 );
 
-// Upload event poster
+// Upload event poster (for existing events)
 router.post(
   '/events/:id/poster',
+  protect,
+  uploadSingle('image'),
+  requireFile,
+  uploadEventPoster
+);
+
+// Upload event poster (for new events - before event creation)
+router.post(
+  '/events/poster',
   protect,
   uploadSingle('image'),
   requireFile,

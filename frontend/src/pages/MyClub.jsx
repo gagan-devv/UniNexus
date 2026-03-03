@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Calendar, 
@@ -11,7 +12,8 @@ import {
   Linkedin,
   Twitter,
   Facebook,
-  Globe
+  Globe,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { clubAPI } from '../services/api';
@@ -20,6 +22,7 @@ import ImageDisplay from '../components/common/ImageDisplay';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import CustomSelect from '../components/common/CustomSelect';
+import EventCreationForm from '../components/specific/EventCreationForm';
 
 const CATEGORY_OPTIONS = [
   { value: 'Academic', label: 'Academic' },
@@ -39,13 +42,19 @@ const CATEGORY_OPTIONS = [
 
 const MyClub = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [clubData, setClubData] = useState(null);
+  const [clubEvents, setClubEvents] = useState([]);
+  const [clubMembers, setClubMembers] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showEventCreationModal, setShowEventCreationModal] = useState(false);
 
   // Form state for editing
   const [editForm, setEditForm] = useState({
@@ -101,11 +110,58 @@ const MyClub = () => {
           website: data.socialLinks?.website || ''
         }
       });
+
+      // Fetch club events
+      if (data._id) {
+        fetchClubEvents(data._id);
+        fetchClubMembers(data._id);
+      }
     } catch (err) {
       console.error('Error fetching club data:', err);
       setError(err.response?.data?.message || 'Failed to fetch club data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClubEvents = async (clubId) => {
+    setLoadingEvents(true);
+    try {
+      const response = await clubAPI.getEvents(clubId);
+      // The API returns { success: true, data: { events: [...] } }
+      const eventsData = response?.data?.data;
+      setClubEvents(eventsData?.events || []);
+    } catch (err) {
+      console.error('Error fetching club events:', err);
+      // Don't set error state for events, just log it
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const fetchClubMembers = async (clubId) => {
+    setLoadingMembers(true);
+    try {
+      const response = await clubAPI.getMembers(clubId);
+      const membersData = response?.data?.data;
+      const membersList = membersData?.members || [];
+      
+      // Transform members data to match display format
+      setClubMembers(membersList.map(member => {
+        const userData = member.userId;
+        return {
+          _id: userData._id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          username: userData.username,
+          avatarUrl: userData.avatarUrl
+        };
+      }));
+    } catch (err) {
+      console.error('Error fetching club members:', err);
+      // Don't set error state for members, just log it
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -174,6 +230,20 @@ const MyClub = () => {
   const handleRetry = () => {
     setError(null);
     fetchClubData();
+  };
+
+  const handleEventCreationSuccess = (event) => {
+    setShowEventCreationModal(false);
+    setSuccessMessage('Event created successfully!');
+    setTimeout(() => setSuccessMessage(null), 3000);
+    // Refresh club data to update event count
+    fetchClubData();
+    // Navigate to event details page
+    navigate(`/events/${event._id}`);
+  };
+
+  const handleEventCreationCancel = () => {
+    setShowEventCreationModal(false);
   };
 
   if (loading) {
@@ -500,6 +570,13 @@ const MyClub = () => {
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
             {clubData.stats?.eventCount || 0}
           </p>
+          <button
+            onClick={() => setShowEventCreationModal(true)}
+            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Create Event
+          </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -515,6 +592,89 @@ const MyClub = () => {
         </div>
       </div>
 
+      {/* Club Events Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Club Events
+          </h2>
+          <button 
+            onClick={() => setShowEventCreationModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Event
+          </button>
+        </div>
+
+        {loadingEvents ? (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : clubEvents && clubEvents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clubEvents.map((event) => (
+              <div
+                key={event._id}
+                onClick={() => navigate(`/events/${event._id}`)}
+                className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+              >
+                {event.posterUrl ? (
+                  <img
+                    src={event.posterUrl}
+                    alt={event.title}
+                    className="w-full h-32 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-32 bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                    <Calendar className="h-12 w-12 text-white opacity-50" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
+                    {event.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                    {event.description}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {new Date(event.startTime).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  {event.category && (
+                    <div className="mt-2">
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                        {event.category}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              No events yet
+            </p>
+            <button
+              onClick={() => setShowEventCreationModal(true)}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create Your First Event
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Members Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -526,9 +686,13 @@ const MyClub = () => {
           </button>
         </div>
 
-        {clubData.members && clubData.members.length > 0 ? (
+        {loadingMembers ? (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : clubMembers && clubMembers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clubData.members.map((member) => (
+            {clubMembers.map((member) => (
               <div
                 key={member._id}
                 className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
@@ -576,6 +740,29 @@ const MyClub = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Event Creation Modal */}
+      {showEventCreationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-xl">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Create New Event
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Fill in the details below to create an event for your club
+              </p>
+            </div>
+            <div className="px-6 py-5">
+              <EventCreationForm
+                clubId={clubData._id}
+                onSuccess={handleEventCreationSuccess}
+                onCancel={handleEventCreationCancel}
+              />
+            </div>
           </div>
         </div>
       )}
