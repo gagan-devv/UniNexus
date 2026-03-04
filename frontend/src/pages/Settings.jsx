@@ -7,7 +7,7 @@ import ProfilePictureUpload from '../components/specific/ProfilePictureUpload';
 import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, updateAvatar } = useAuth();
 
   // State management
   const [settings, setSettings] = useState({
@@ -167,10 +167,7 @@ const Settings = () => {
   // Handle profile picture upload success
   const handleAvatarUploadSuccess = (newAvatarUrl) => {
     // Update user context with new avatar URL
-    setUser((prevUser) => ({
-      ...prevUser,
-      avatarUrl: newAvatarUrl,
-    }));
+    updateAvatar(newAvatarUrl);
   };
 
   if (loading) {

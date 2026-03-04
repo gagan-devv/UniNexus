@@ -202,7 +202,7 @@ const EventCreationForm = ({ clubId, onSuccess, onCancel, initialData = null, is
     setError(null);
 
     try {
-      // Prepare event data
+      // Prepare base event data
       const eventData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -210,8 +210,7 @@ const EventCreationForm = ({ clubId, onSuccess, onCancel, initialData = null, is
         endTime: new Date(formData.endTime).toISOString(),
         location: formData.location.trim(),
         category: formData.category,
-        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
-        organizer: clubId
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []
       };
 
       // Add optional fields
@@ -225,8 +224,13 @@ const EventCreationForm = ({ clubId, onSuccess, onCancel, initialData = null, is
       // Create or update event
       let response;
       if (isEdit && initialData?._id) {
+        // For update, don't include organizer field
+        console.log('Updating event with data:', eventData);
         response = await eventAPI.update(initialData._id, eventData);
       } else {
+        // For create, include organizer field
+        eventData.organizer = clubId;
+        console.log('Creating event with data:', eventData);
         response = await eventAPI.create(eventData);
       }
       

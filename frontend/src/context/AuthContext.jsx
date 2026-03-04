@@ -112,6 +112,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateAvatar = (newAvatarUrl) => {
+    setUser((prevUser) => ({
+      ...prevUser,
+      avatarUrl: newAvatarUrl
+    }));
+  };
+
   const value = {
     user,
     setUser,
@@ -121,6 +128,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshToken,
+    updateAvatar,
     isAuthenticated: !!user
   };
 

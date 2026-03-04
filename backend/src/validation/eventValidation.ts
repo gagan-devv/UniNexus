@@ -201,7 +201,8 @@ export const validateUpdateEventInput = (input: unknown): { isValid: boolean; er
     }
     
     if (inputObj.posterUrl !== undefined && typeof inputObj.posterUrl === 'string' && inputObj.posterUrl.trim()) {
-        const posterRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
+        // Allow presigned URLs with query parameters
+        const posterRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
         if (!posterRegex.test(inputObj.posterUrl.trim())) {
             errors.push('Poster URL must be a valid image URL');
         }

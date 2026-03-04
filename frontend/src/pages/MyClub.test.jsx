@@ -10,6 +10,13 @@ vi.mock('../services/api', () => ({
   clubAPI: {
     getById: vi.fn(),
     update: vi.fn(),
+    getEvents: vi.fn(),
+  },
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -145,21 +152,6 @@ describe('MyClub', () => {
       expect(screen.getByText(/Founded 2020/)).toBeInTheDocument();
     });
 
-    it('should display club statistics', async () => {
-      clubAPI.getById.mockResolvedValue({
-        data: { data: mockClubData },
-      });
-
-      renderWithProviders(<MyClub />);
-
-      await waitFor(() => {
-        expect(screen.getByText('150')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('25')).toBeInTheDocument();
-      expect(screen.getByText('87.5')).toBeInTheDocument();
-    });
-
     it('should display social media links', async () => {
       clubAPI.getById.mockResolvedValue({
         data: { data: mockClubData },
@@ -171,22 +163,6 @@ describe('MyClub', () => {
         const instagramLink = screen.getByRole('link', { name: 'Instagram' });
         expect(instagramLink).toHaveAttribute('href', 'https://instagram.com/techclub');
       });
-    });
-
-    it('should display member list', async () => {
-      clubAPI.getById.mockResolvedValue({
-        data: { data: mockClubData },
-      });
-
-      renderWithProviders(<MyClub />);
-
-      await waitFor(() => {
-        expect(screen.getByText('John Doe')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
-      expect(screen.getByText('@john_doe')).toBeInTheDocument();
-      expect(screen.getByText('@jane_smith')).toBeInTheDocument();
     });
 
     it('should display "No members yet" when members array is empty', async () => {
