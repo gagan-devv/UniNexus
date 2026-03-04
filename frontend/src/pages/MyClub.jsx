@@ -23,6 +23,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import CustomSelect from '../components/common/CustomSelect';
 import EventCreationForm from '../components/specific/EventCreationForm';
+import MemberManagement from '../components/specific/MemberManagement';
 
 const CATEGORY_OPTIONS = [
   { value: 'Academic', label: 'Academic' },
@@ -45,9 +46,7 @@ const MyClub = () => {
   const navigate = useNavigate();
   const [clubData, setClubData] = useState(null);
   const [clubEvents, setClubEvents] = useState([]);
-  const [clubMembers, setClubMembers] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
-  const [loadingMembers, setLoadingMembers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -55,6 +54,7 @@ const MyClub = () => {
   const [successMessage, setSuccessMessage] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEventCreationModal, setShowEventCreationModal] = useState(false);
+  const [actualMemberCount, setActualMemberCount] = useState(0);
 
   // Form state for editing
   const [editForm, setEditForm] = useState({
@@ -114,7 +114,6 @@ const MyClub = () => {
       // Fetch club events
       if (data._id) {
         fetchClubEvents(data._id);
-        fetchClubMembers(data._id);
       }
     } catch (err) {
       console.error('Error fetching club data:', err);
@@ -136,32 +135,6 @@ const MyClub = () => {
       // Don't set error state for events, just log it
     } finally {
       setLoadingEvents(false);
-    }
-  };
-
-  const fetchClubMembers = async (clubId) => {
-    setLoadingMembers(true);
-    try {
-      const response = await clubAPI.getMembers(clubId);
-      const membersData = response?.data?.data;
-      const membersList = membersData?.members || [];
-      
-      // Transform members data to match display format
-      setClubMembers(membersList.map(member => {
-        const userData = member.userId;
-        return {
-          _id: userData._id,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          username: userData.username,
-          avatarUrl: userData.avatarUrl
-        };
-      }));
-    } catch (err) {
-      console.error('Error fetching club members:', err);
-      // Don't set error state for members, just log it
-    } finally {
-      setLoadingMembers(false);
     }
   };
 
@@ -556,7 +529,7 @@ const MyClub = () => {
             </h3>
           </div>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {clubData.stats?.memberCount || clubData.memberCount || 0}
+            {actualMemberCount}
           </p>
         </div>
 
@@ -677,48 +650,11 @@ const MyClub = () => {
 
       {/* Members Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Club Members
-          </h2>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Manage Members
-          </button>
-        </div>
-
-        {loadingMembers ? (
-          <div className="flex justify-center py-8">
-            <LoadingSpinner size="md" />
-          </div>
-        ) : clubMembers && clubMembers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clubMembers.map((member) => (
-              <div
-                key={member._id}
-                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <ImageDisplay
-                  imageUrl={member.avatarUrl}
-                  altText={member.username}
-                  size="sm"
-                  className="rounded-full"
-                />
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {member.firstName} {member.lastName}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    @{member.username}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-600 dark:text-gray-400 py-8">
-            No members yet
-          </p>
-        )}
+        <MemberManagement 
+          clubId={clubData._id} 
+          isAdmin={true}
+          onMemberCountChange={setActualMemberCount}
+        />
       </div>
 
       {/* Upload Logo Modal */}
