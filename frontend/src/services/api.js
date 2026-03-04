@@ -130,6 +130,7 @@ export const authAPI = {
   refreshToken: (data) => api.post('/auth/refresh', data),
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
+  searchUsers: (query) => api.get('/users/search', { params: { query, limit: 20 } }),
 };
 
 export const clubAPI = {

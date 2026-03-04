@@ -184,3 +184,50 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response): Pro
         });
     }
 };
+
+export const searchUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { query, limit = 20 } = req.query;
+        const currentUserId = req.user?._id;
+
+        if (!query || typeof query !== 'string') {
+            res.status(400).json({
+                success: false,
+                message: 'Search query is required'
+            });
+            return;
+        }
+
+        if (!currentUserId) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        // Search by username, firstName, or lastName (case-insensitive)
+        const searchRegex = new RegExp(query, 'i');
+        const users = await User.find({
+            _id: { $ne: currentUserId }, // Exclude current user
+            $or: [
+                { username: searchRegex },
+                { firstName: searchRegex },
+                { lastName: searchRegex }
+            ]
+        })
+            .select('_id username firstName lastName avatarUrl')
+            .limit(Number(limit));
+
+        res.json({
+            success: true,
+            data: users
+        });
+    } catch (error) {
+        logger.error('Search users error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
