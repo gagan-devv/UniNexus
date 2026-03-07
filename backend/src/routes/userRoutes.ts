@@ -1,10 +1,11 @@
 import express from 'express';
-import { getUserProfile, updateUserProfile, deleteUserProfile, getAllUsers } from '../controllers/userController';
+import { getUserProfile, updateUserProfile, deleteUserProfile, getAllUsers, searchUsers } from '../controllers/userController';
 import { protect, requireAdmin } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
 router.get('/', protect, requireAdmin, getAllUsers);
+router.get('/search', protect, searchUsers);
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
 router.delete('/profile', protect, deleteUserProfile);

@@ -185,7 +185,8 @@ export const uploadClubLogo = async (req: AuthenticatedRequest, res: Response): 
 
 /**
  * Upload event poster
- * POST /api/events/:id/poster
+ * POST /api/events/:id/poster (for existing events)
+ * POST /api/events/poster (for new events before creation)
  */
 export const uploadEventPoster = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -207,41 +208,46 @@ export const uploadEventPoster = async (req: AuthenticatedRequest, res: Response
 
     const eventId = req.params.id;
 
-    if (!eventId || Array.isArray(eventId)) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid event ID'
-      });
-      return;
-    }
+    // If eventId is provided, verify ownership
+    if (eventId && !Array.isArray(eventId)) {
+      // Find event
+      const event = await Event.findById(eventId);
+      if (!event) {
+        res.status(404).json({
+          success: false,
+          message: 'Event not found'
+        });
+        return;
+      }
 
-    // Find event
-    const event = await Event.findById(eventId);
-    if (!event) {
-      res.status(404).json({
-        success: false,
-        message: 'Event not found'
-      });
-      return;
-    }
+      // Find user's club
+      const club = await ClubProfile.findOne({ user: req.user._id });
+      if (!club) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied. You are not a club owner'
+        });
+        return;
+      }
 
-    // Find user's club
-    const club = await ClubProfile.findOne({ user: req.user._id });
-    if (!club) {
-      res.status(403).json({
-        success: false,
-        message: 'Access denied. You are not a club owner'
-      });
-      return;
-    }
-
-    // Check if user's club is the event organizer
-    if (event.organizer.toString() !== club._id.toString()) {
-      res.status(403).json({
-        success: false,
-        message: 'Access denied. You are not the organizer of this event'
-      });
-      return;
+      // Check if user's club is the event organizer
+      if (event.organizer.toString() !== club._id.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied. You are not the organizer of this event'
+        });
+        return;
+      }
+    } else {
+      // For new events, just verify user is a club owner
+      const club = await ClubProfile.findOne({ user: req.user._id });
+      if (!club) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied. You are not a club owner'
+        });
+        return;
+      }
     }
 
     // Initialize media service
@@ -249,25 +255,33 @@ export const uploadEventPoster = async (req: AuthenticatedRequest, res: Response
     const bucketName = getS3BucketName();
     const mediaService = getMediaService(s3Client, bucketName);
 
-    // Upload to S3
-    const result = await mediaService.uploadEventPoster(eventId, req.file);
+    // Upload to S3 (use eventId if provided, otherwise use a temporary ID)
+    const uploadId = (eventId && !Array.isArray(eventId)) ? eventId : `temp-${Date.now()}-${req.user._id}`;
+    const result = await mediaService.uploadEventPoster(uploadId, req.file);
 
     // Generate presigned URL for immediate use
     const presignedUrl = await mediaService.getPresignedUrl(result.s3Key, 3600);
 
-    // Update event document
-    event.poster = {
-      s3Key: result.s3Key,
-      uploadedAt: new Date()
-    };
-    event.posterUrl = presignedUrl;
-    await event.save();
+    // If eventId exists, update the event document
+    if (eventId && !Array.isArray(eventId)) {
+      const event = await Event.findById(eventId);
+      if (event) {
+        event.poster = {
+          s3Key: result.s3Key,
+          uploadedAt: new Date()
+        };
+        event.posterUrl = presignedUrl;
+        await event.save();
 
-    // Invalidate event cache
-    const cacheService = getCacheService();
-    await cacheService.invalidateEvents();
+        // Invalidate event cache
+        const cacheService = getCacheService();
+        await cacheService.invalidateEvents();
 
-    logger.info(`Event poster uploaded for event ${eventId}`);
+        logger.info(`Event poster uploaded for event ${eventId}`);
+      }
+    } else {
+      logger.info(`Event poster uploaded for new event by user ${req.user._id}`);
+    }
 
     res.status(200).json({
       success: true,

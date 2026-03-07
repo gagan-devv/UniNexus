@@ -5,6 +5,8 @@ import { eventAPI, rsvpAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import ImageDisplay from '../components/common/ImageDisplay';
+import ConfirmDialog from '../components/common/ConfirmDialog';
+import EventCreationForm from '../components/specific/EventCreationForm';
 
 const EventDetails = () => {
   const { id } = useParams();
@@ -19,6 +21,10 @@ const EventDetails = () => {
   const [hasRsvp, setHasRsvp] = useState(false);
   const [attendeeCount, setAttendeeCount] = useState(0);
   const [attendees, setAttendees] = useState([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [isOrganizer, setIsOrganizer] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -35,6 +41,19 @@ const EventDetails = () => {
       
       setEvent(eventData);
       setAttendeeCount(eventData.stats?.attendeeCount || 0);
+
+      // Check if current user is the organizer
+      if (isAuthenticated && user && eventData.organizer) {
+        // The organizer.user field is an ObjectId that needs to be converted to string
+        const organizerUserId = eventData.organizer.user?._id || eventData.organizer.user;
+        const isOwner = String(organizerUserId) === String(user._id);
+        console.log('Checking organizer:', { 
+          organizerUserId: String(organizerUserId), 
+          currentUserId: String(user._id), 
+          match: isOwner 
+        });
+        setIsOrganizer(isOwner);
+      }
 
       // Fetch RSVPs to display attendee list (available to everyone)
       try {
@@ -172,6 +191,28 @@ const EventDetails = () => {
     });
   };
 
+  const handleDeleteEvent = async () => {
+    try {
+      setDeleting(true);
+      await eventAPI.delete(id);
+      navigate('/my-club', { state: { message: 'Event deleted successfully' } });
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      setError(err.response?.data?.message || 'Failed to delete event');
+      setShowDeleteDialog(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditSuccess = (updatedEvent) => {
+    setEvent(updatedEvent);
+    setShowEditModal(false);
+    setError(null);
+    // Refresh event data
+    fetchEventDetails();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -236,8 +277,27 @@ const EventDetails = () => {
               </span>
             </div>
             
-            {/* RSVP Button */}
-            <div className="ml-4">
+            {/* Action Buttons */}
+            <div className="ml-4 flex gap-2">
+              {/* Edit and Delete buttons for organizers */}
+              {isOrganizer && (
+                <>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+              
+              {/* RSVP Button */}
               {!isAuthenticated ? (
                 <button
                   onClick={() => navigate('/login')}
@@ -385,6 +445,38 @@ const EventDetails = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteEvent}
+        title="Delete Event"
+        message="Are you sure you want to delete this event? This action cannot be undone and all RSVPs will be lost."
+        confirmText="Delete"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        loading={deleting}
+      />
+
+      {/* Edit Event Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                Edit Event
+              </h2>
+              <EventCreationForm
+                clubId={event.organizer._id}
+                onSuccess={handleEditSuccess}
+                onCancel={() => setShowEditModal(false)}
+                initialData={event}
+                isEdit={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

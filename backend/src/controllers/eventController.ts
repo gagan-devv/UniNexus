@@ -46,11 +46,18 @@ const createEvent = async (req: AuthenticatedRequest, res: Response): Promise<vo
             organizer: club._id
         });
 
+        // Update club's event count
+        await ClubProfile.findByIdAndUpdate(
+            club._id,
+            { $inc: { 'stats.eventCount': 1 } }
+        );
+
         const populatedEvent = await Event.findById(newEvent._id).populate('organizer', 'name email');
 
-        // Invalidate event cache
+        // Invalidate event cache and club cache
         const cacheService = getCacheService();
         await cacheService.invalidateEvents();
+        await cacheService.invalidateClubs();
 
         res.status(201).json({
             success: true,
@@ -166,7 +173,7 @@ const getEventById = async (req: Request, res: Response): Promise<void> => {
 
         // Cache miss - query database
         const event = await Event.findById(eventId)
-            .populate('organizer', 'name email logoUrl isVerified');
+            .populate('organizer', 'name email logoUrl isVerified user');
         
         if (!event) {
             res.status(404).json({
@@ -292,12 +299,19 @@ const deleteEvent = async (req: AuthenticatedRequest, res: Response): Promise<vo
             return;
         }
 
+        // Decrement club's event count
+        await ClubProfile.findByIdAndUpdate(
+            event.organizer,
+            { $inc: { 'stats.eventCount': -1 } }
+        );
+
         await RSVP.deleteMany({ event: event._id });
         await Event.findByIdAndDelete(req.params.id);
 
-        // Invalidate event cache
+        // Invalidate event cache and club cache
         const cacheService = getCacheService();
         await cacheService.invalidateEvents();
+        await cacheService.invalidateClubs();
 
         res.json({
             success: true,

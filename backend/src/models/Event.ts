@@ -119,22 +119,10 @@ const EventSchema = new Schema<IEvent>({
     startTime: {
         type: Date,
         required: true,
-        validate: {
-            validator: function (v: Date) {
-                return v > new Date();
-            },
-            message: 'Start time must be in the future',
-        },
     },
     endTime: {
         type: Date,
         required: true,
-        validate: {
-            validator: function (v: Date) {
-                return v > (this as unknown as IEvent).startTime;
-            },
-            message: 'End time must be after start time',
-        },
     },
     maxAttendees: {
         type: Number,
