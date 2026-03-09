@@ -465,3 +465,114 @@ export const deleteComment = async (req: AuthenticatedRequest, res: Response): P
         });
     }
 };
+
+/**
+ * Vote on a comment (upvote, downvote, or remove vote)
+ * POST /api/comments/:id/vote
+ */
+export const voteOnComment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        const { id } = req.params;
+        const { voteType } = req.body;
+
+        // Validate voteType
+        if (!voteType || !['upvote', 'downvote', 'remove'].includes(voteType)) {
+            res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: [
+                    { field: 'voteType', message: 'Vote type must be "upvote", "downvote", or "remove"' }
+                ]
+            });
+            return;
+        }
+
+        // Find comment
+        const comment = await Comment.findById(id);
+        if (!comment) {
+            res.status(404).json({
+                success: false,
+                message: 'Comment not found'
+            });
+            return;
+        }
+
+        // Prevent voting on own comment
+        if (comment.author.toString() === req.user._id.toString()) {
+            res.status(403).json({
+                success: false,
+                message: 'You cannot vote on your own comment'
+            });
+            return;
+        }
+
+        const userId = req.user._id;
+
+        // Handle vote based on type
+        if (voteType === 'upvote') {
+            // Use atomic operations to prevent race conditions
+            await Comment.findByIdAndUpdate(id, {
+                $addToSet: { upvotes: userId },  // Add to upvotes (no duplicates)
+                $pull: { downvotes: userId }      // Remove from downvotes
+            });
+        } else if (voteType === 'downvote') {
+            // Use atomic operations to prevent race conditions
+            await Comment.findByIdAndUpdate(id, {
+                $addToSet: { downvotes: userId }, // Add to downvotes (no duplicates)
+                $pull: { upvotes: userId }        // Remove from upvotes
+            });
+        } else if (voteType === 'remove') {
+            // Remove vote entirely
+            await Comment.findByIdAndUpdate(id, {
+                $pull: { 
+                    upvotes: userId,
+                    downvotes: userId
+                }
+            });
+        }
+
+        // Fetch updated comment and recalculate vote count
+        const updatedComment = await Comment.findById(id);
+        if (updatedComment) {
+            updatedComment.voteCount = updatedComment.upvotes.length - updatedComment.downvotes.length;
+            await updatedComment.save();
+
+            // Determine user's current vote
+            let userVote: 'upvote' | 'downvote' | null = null;
+            if (updatedComment.upvotes.some(id => id.toString() === userId.toString())) {
+                userVote = 'upvote';
+            } else if (updatedComment.downvotes.some(id => id.toString() === userId.toString())) {
+                userVote = 'downvote';
+            }
+
+            res.json({
+                success: true,
+                message: 'Vote recorded successfully',
+                data: {
+                    voteCount: updatedComment.voteCount,
+                    userVote
+                }
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Comment not found after update'
+            });
+        }
+
+    } catch (error) {
+        logger.error('Vote on comment error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
