@@ -31,6 +31,15 @@ export interface IClubProfile extends Document {
     foundedYear?: number;
     memberCount?: number;
     contactPhone?: string;
+    
+    // Approval workflow
+    status: 'pending' | 'approved' | 'rejected';
+    approvedBy: mongoose.Types.ObjectId | null;
+    approvedAt: Date | null;
+    rejectedBy: mongoose.Types.ObjectId | null;
+    rejectedAt: Date | null;
+    rejectionReason: string | null;
+    
     createdAt: Date;
     updatedAt: Date;
 }
@@ -255,6 +264,37 @@ const ClubProfileSchema = new Schema<IClubProfile>({
             message: 'Please enter a valid phone number'
         }
     },
+    
+    // Approval workflow
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+    },
+    approvedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    approvedAt: {
+        type: Date,
+        default: null
+    },
+    rejectedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    rejectedAt: {
+        type: Date,
+        default: null
+    },
+    rejectionReason: {
+        type: String,
+        default: null,
+        maxlength: [500, 'Rejection reason cannot exceed 500 characters']
+    },
+    
     createdAt: { 
         type: Date, 
         default: Date.now 

@@ -7,6 +7,7 @@ export interface IUser extends Document {
     email: string;
     password: string;
     role: 'student' | 'admin';
+    isSuperAdmin: boolean;
     firstName?: string;
     lastName?: string;
     year?: number;
@@ -88,6 +89,10 @@ const UserSchema = new Schema<IUser>({
         type: String,
         enum: ['student', 'admin'],
         default: 'student'
+    },
+    isSuperAdmin: {
+        type: Boolean,
+        default: false
     },
     firstName: {
         type: String,
