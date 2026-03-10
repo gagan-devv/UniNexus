@@ -505,7 +505,7 @@ export const voteOnComment = async (req: AuthenticatedRequest, res: Response): P
             return;
         }
 
-        // Prevent voting on own comment
+        // Prevent self-voting
         if (comment.author.toString() === req.user._id.toString()) {
             res.status(403).json({
                 success: false,
@@ -518,55 +518,54 @@ export const voteOnComment = async (req: AuthenticatedRequest, res: Response): P
 
         // Handle vote based on type
         if (voteType === 'upvote') {
-            // Use atomic operations to prevent race conditions
+            // Add upvote, remove downvote (atomic operation)
             await Comment.findByIdAndUpdate(id, {
-                $addToSet: { upvotes: userId },  // Add to upvotes (no duplicates)
-                $pull: { downvotes: userId }      // Remove from downvotes
+                $addToSet: { upvotes: userId },
+                $pull: { downvotes: userId }
             });
         } else if (voteType === 'downvote') {
-            // Use atomic operations to prevent race conditions
+            // Add downvote, remove upvote (atomic operation)
             await Comment.findByIdAndUpdate(id, {
-                $addToSet: { downvotes: userId }, // Add to downvotes (no duplicates)
-                $pull: { upvotes: userId }        // Remove from upvotes
+                $addToSet: { downvotes: userId },
+                $pull: { upvotes: userId }
             });
         } else if (voteType === 'remove') {
-            // Remove vote entirely
+            // Remove both upvote and downvote
             await Comment.findByIdAndUpdate(id, {
-                $pull: { 
-                    upvotes: userId,
-                    downvotes: userId
-                }
+                $pull: { upvotes: userId, downvotes: userId }
             });
         }
 
-        // Fetch updated comment and recalculate vote count
+        // Fetch updated comment to recalculate vote count
         const updatedComment = await Comment.findById(id);
-        if (updatedComment) {
-            updatedComment.voteCount = updatedComment.upvotes.length - updatedComment.downvotes.length;
-            await updatedComment.save();
-
-            // Determine user's current vote
-            let userVote: 'upvote' | 'downvote' | null = null;
-            if (updatedComment.upvotes.some(id => id.toString() === userId.toString())) {
-                userVote = 'upvote';
-            } else if (updatedComment.downvotes.some(id => id.toString() === userId.toString())) {
-                userVote = 'downvote';
-            }
-
-            res.json({
-                success: true,
-                message: 'Vote recorded successfully',
-                data: {
-                    voteCount: updatedComment.voteCount,
-                    userVote
-                }
-            });
-        } else {
+        if (!updatedComment) {
             res.status(404).json({
                 success: false,
-                message: 'Comment not found after update'
+                message: 'Comment not found'
             });
+            return;
         }
+
+        // Recalculate vote count
+        updatedComment.voteCount = updatedComment.upvotes.length - updatedComment.downvotes.length;
+        await updatedComment.save();
+
+        // Determine user's current vote
+        let userVote: 'upvote' | 'downvote' | null = null;
+        if (updatedComment.upvotes.some(id => id.toString() === userId.toString())) {
+            userVote = 'upvote';
+        } else if (updatedComment.downvotes.some(id => id.toString() === userId.toString())) {
+            userVote = 'downvote';
+        }
+
+        res.json({
+            success: true,
+            message: 'Vote recorded successfully',
+            data: {
+                voteCount: updatedComment.voteCount,
+                userVote
+            }
+        });
 
     } catch (error) {
         logger.error('Vote on comment error:', error instanceof Error ? error.message : String(error));
