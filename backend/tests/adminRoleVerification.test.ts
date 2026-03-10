@@ -30,7 +30,7 @@ describe('Property Test: Admin Role Verification', () => {
     
     // Generator for user with isSuperAdmin flag
     const userArbitrary = fc.record({
-        _id: fc.hexaString({ minLength: 24, maxLength: 24 }),
+        _id: fc.string({ minLength: 24, maxLength: 24 }),
         username: fc.string({ minLength: 3, maxLength: 20 }),
         email: fc.emailAddress(),
         isSuperAdmin: fc.boolean(),
@@ -71,7 +71,7 @@ describe('Property Test: Admin Role Verification', () => {
                     })) as never);
                     
                     // Create valid token
-                    const token = AuthService.generateAccessToken(user._id);
+                    const token = AuthService.generateAccessToken(user._id as string);
                     
                     const response = endpoint.method === 'GET'
                         ? await request(app).get(endpoint.path).set('Authorization', `Bearer ${token}`)
@@ -111,7 +111,7 @@ describe('Property Test: Admin Role Verification', () => {
                     jest.spyOn(ClubProfile, 'countDocuments').mockResolvedValue(0);
                     
                     // Create valid token
-                    const token = AuthService.generateAccessToken(user._id);
+                    const token = AuthService.generateAccessToken(user._id as string);
                     
                     // Test GET endpoint
                     const response = await request(app)
