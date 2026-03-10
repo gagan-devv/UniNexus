@@ -31,12 +31,20 @@ afterEach(async () => {
 
 // Cleanup after all tests
 afterAll(async () => {
-  // Close database connection
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  
-  // Stop MongoDB Memory Server
-  await mongoServer.stop();
+  try {
+    // Close database connection
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.dropDatabase();
+      await mongoose.connection.close();
+    }
+    
+    // Stop MongoDB Memory Server
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+  } catch (error) {
+    console.error('Error during test cleanup:', error);
+  }
 });
 
 // Global test utilities
