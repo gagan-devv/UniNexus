@@ -191,6 +191,12 @@ export const adminAPI = {
   getPendingClubs: (params) => api.get('/admin/clubs/pending', { params }),
   approveClub: (id) => api.post(`/admin/clubs/${id}/approve`),
   rejectClub: (id, data) => api.post(`/admin/clubs/${id}/reject`, data),
+export const commentAPI = {
+  getByEvent: (eventId, params) => api.get(`/comments/event/${eventId}`, { params }),
+  create: (data) => api.post('/comments', data),
+  update: (id, data) => api.put(`/comments/${id}`, data),
+  delete: (id) => api.delete(`/comments/${id}`),
+  vote: (id, voteType) => api.post(`/comments/${id}/vote`, { voteType }),
 };
 
 export default api;
