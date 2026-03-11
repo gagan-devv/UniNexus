@@ -23,6 +23,8 @@ const Settings = lazy(() => import('./pages/Settings'));
 const MyClub = lazy(() => import('./pages/MyClub'));
 const EventDetails = lazy(() => import('./pages/EventDetails'));
 const ClubDetails = lazy(() => import('./pages/ClubDetails'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ClubCreation = lazy(() => import('./pages/ClubCreation'));
 
 function App() {
   return (
@@ -156,6 +158,14 @@ function App() {
                       } 
                     />
                     <Route 
+                      path="/clubs/create" 
+                      element={
+                        <ProtectedRoute>
+                          <ClubCreation />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
                       path="/events/:id" 
                       element={
                         <ProtectedRoute>
@@ -168,6 +178,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <ClubDetails />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/admin/dashboard" 
+                      element={
+                        <ProtectedRoute>
+                          <AdminDashboard />
                         </ProtectedRoute>
                       } 
                     />

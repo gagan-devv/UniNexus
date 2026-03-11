@@ -98,3 +98,19 @@ export const checkRedisHealth = async (): Promise<boolean> => {
     return false;
   }
 };
+
+export const clearRedisCache = async (): Promise<boolean> => {
+  if (!redisClient) {
+    logger.warn('⚠️ Redis client not available, skipping cache clear');
+    return false;
+  }
+
+  try {
+    await redisClient.flushdb();
+    logger.info('✅ Redis cache cleared successfully');
+    return true;
+  } catch (error) {
+    logger.error('❌ Failed to clear Redis cache:', error instanceof Error ? error.message : String(error));
+    return false;
+  }
+};

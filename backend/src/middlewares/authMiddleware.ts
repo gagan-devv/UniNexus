@@ -106,6 +106,33 @@ export const restrictTo = (...roles: string[]) => {
 export const requireAdmin = restrictTo('admin');
 
 /**
+ * Middleware to check if user is super admin
+ */
+export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+        logger.error('Super admin check attempted without authenticated user');
+        const errorResponse = AuthService.createErrorResponse(
+            'Authentication required',
+            401
+        );
+        res.status(401).json(errorResponse);
+        return;
+    }
+
+    if (!req.user.isSuperAdmin) {
+        logger.warn(`Super admin access denied for user ${req.user._id}`);
+        const errorResponse = AuthService.createErrorResponse(
+            'Access denied. Super admin privileges required',
+            403
+        );
+        res.status(403).json(errorResponse);
+        return;
+    }
+
+    next();
+};
+
+/**
  * Middleware to check if user is student or admin
  */
 export const requireStudent = restrictTo('student', 'admin');

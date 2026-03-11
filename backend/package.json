@@ -14,6 +14,7 @@
     "atlas:status": "ts-node src/scripts/atlasStatus.ts",
     "get-ip": "ts-node src/scripts/getMyIP.ts",
     "seed": "ts-node src/scripts/seedData.ts",
+    "script:setSuperAdmin": "ts-node src/scripts/setSuperAdmin.ts",
     "start": "ts-node src/server.ts",
     "dev": "nodemon src/server.ts",
     "build": "tsc",

@@ -187,7 +187,7 @@ describe('Property 9: Comment Validation', () => {
           fc.oneof(
             fc.string({ minLength: 1, maxLength: 500 }).filter(s => s.trim().length > 0),
             fc.lorem({ maxCount: 50 }),
-            fc.string({ minLength: 1, maxLength: 500 }),
+            fc.string({ minLength: 1, maxLength: 500 }).filter(s => s.trim().length > 0),
             fc.constant('Valid comment with special chars: !@#$%^&*()'),
             fc.constant('Comment with numbers: 123456789'),
             fc.constant('Comment with emoji: 😀 🎉 👍')

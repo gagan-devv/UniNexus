@@ -145,6 +145,13 @@ export const clubAPI = {
   getEvents: (id) => api.get(`/clubs/${id}/events`),
 };
 
+export const adminAPI = {
+  getClubStats: () => api.get('/admin/clubs/stats'),
+  getPendingClubs: (params) => api.get('/admin/clubs/pending', { params }),
+  approveClub: (id) => api.post(`/admin/clubs/${id}/approve`),
+  rejectClub: (id, reason) => api.post(`/admin/clubs/${id}/reject`, { reason }),
+};
+
 export const eventAPI = {
   getAll: (params) => api.get('/events', { params }),
   getById: (id) => api.get(`/events/${id}`),

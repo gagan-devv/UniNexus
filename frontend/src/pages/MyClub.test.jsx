@@ -601,7 +601,7 @@ describe('MyClub', () => {
         expect(screen.getByText('No Club Profile Found')).toBeInTheDocument();
       });
 
-      expect(screen.getByText("You don't have a club profile yet. Please create one to access this page.")).toBeInTheDocument();
+      expect(screen.getByText("You don't have a club profile yet. Create one to start managing your club and events.")).toBeInTheDocument();
     });
   });
 });

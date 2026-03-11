@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { LogOut, User, Calendar, Users, Sun, Moon } from 'lucide-react';
+import { LogOut, User, Calendar, Users, Sun, Moon, Shield } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -52,6 +52,16 @@ const Navbar = () => {
                   <Users size={16} />
                   <span>Clubs</span>
                 </Link>
+
+                {user?.isSuperAdmin && (
+                  <Link
+                    to="/admin/dashboard"
+                    className="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    <Shield size={16} />
+                    <span>Admin</span>
+                  </Link>
+                )}
 
                 <div className="relative group">
                   <button className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary px-3 py-2 rounded-md text-sm font-medium">
