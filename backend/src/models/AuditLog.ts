@@ -13,7 +13,7 @@ const AuditLogSchema = new Schema<IAuditLog>({
     action: {
         type: String,
         required: true,
-        enum: ['member_added', 'member_removed', 'role_changed'],
+        enum: ['member_added', 'member_removed', 'role_changed', 'club_approved', 'club_rejected', 'comment_moderated'],
         index: true
     },
     actorId: {

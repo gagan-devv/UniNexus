@@ -10,6 +10,14 @@ router.use(protect, requireSuperAdmin);
 // Get club stats
 router.get('/clubs/stats', getClubStats);
 
+import { protect, requireSuperAdmin } from '../middlewares/authMiddleware';
+import { getPendingClubs, approveClub, rejectClub } from '../controllers/adminController';
+
+const router = express.Router();
+
+// All admin routes require authentication and super admin privileges
+router.use(protect, requireSuperAdmin);
+
 // Get pending clubs
 router.get('/clubs/pending', getPendingClubs);
 

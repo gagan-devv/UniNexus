@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { ArrowLeft } from "lucide-react";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -73,6 +74,14 @@ const Register = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen selection:bg-primary/20 dark:selection:bg-primary/30 font-display">
+      {/* Back to Home Button */}
+      <Link
+        to="/"
+        className="fixed top-6 left-6 z-50 p-3 rounded-xl bg-white dark:bg-card-dark border border-slate-200 dark:border-input-border shadow-lg hover:shadow-xl transition-all group"
+      >
+        <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-primary transition-colors" />
+      </Link>
+
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
