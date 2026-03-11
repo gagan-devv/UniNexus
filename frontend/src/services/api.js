@@ -187,4 +187,10 @@ export const settingsAPI = {
   changePassword: (currentPassword, newPassword) => api.put('/settings/password', { currentPassword, newPassword }),
 };
 
+export const adminAPI = {
+  getPendingClubs: (params) => api.get('/admin/clubs/pending', { params }),
+  approveClub: (id) => api.post(`/admin/clubs/${id}/approve`),
+  rejectClub: (id, data) => api.post(`/admin/clubs/${id}/reject`, data),
+};
+
 export default api;
