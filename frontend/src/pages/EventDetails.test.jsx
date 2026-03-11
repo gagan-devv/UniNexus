@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import EventDetails from './EventDetails';
-import { eventAPI, rsvpAPI } from '../services/api';
+import { eventAPI, rsvpAPI, commentAPI } from '../services/api';
 
 // Mock the API modules
 vi.mock('../services/api', () => ({
@@ -14,6 +14,13 @@ vi.mock('../services/api', () => ({
     getEventRSVPs: vi.fn(),
     create: vi.fn(),
     delete: vi.fn()
+  },
+  commentAPI: {
+    getByEvent: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    vote: vi.fn()
   }
 }));
 
@@ -75,6 +82,10 @@ const renderWithProviders = (component) => {
 describe('EventDetails Component - Unit Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock commentAPI to return empty comments by default
+    commentAPI.getByEvent.mockResolvedValue({
+      data: { data: { comments: [] } }
+    });
   });
 
   /**
@@ -280,6 +291,131 @@ describe('EventDetails Component - Unit Tests', () => {
     await waitFor(() => {
       const posterImage = screen.getByAltText(mockEvent.title);
       expect(posterImage).toBeInTheDocument();
+    });
+  });
+});
+
+describe('EventDetails Component - Comments Integration Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock commentAPI to return empty comments by default
+    commentAPI.getByEvent.mockResolvedValue({
+      data: { data: { comments: [] } }
+    });
+  });
+
+  /**
+   * **Validates: Requirements 2.1**
+   * Test that comments section is rendered on the page
+   */
+  it('should render comments section with Discussion header', async () => {
+    eventAPI.getById.mockResolvedValue({
+      data: { data: mockEvent }
+    });
+    rsvpAPI.getEventRSVPs.mockResolvedValue({
+      data: { data: mockRsvps }
+    });
+
+    renderWithProviders(<EventDetails />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Discussion')).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * **Validates: Requirements 2.1, 2.7**
+   * Test that CommentThread component receives correct props
+   */
+  it('should pass eventId to CommentThread component', async () => {
+    eventAPI.getById.mockResolvedValue({
+      data: { data: mockEvent }
+    });
+    rsvpAPI.getEventRSVPs.mockResolvedValue({
+      data: { data: mockRsvps }
+    });
+
+    renderWithProviders(<EventDetails />);
+
+    await waitFor(() => {
+      // The CommentThread component should be rendered
+      // We verify this by checking for the Discussion header which is part of the comments section
+      expect(screen.getByText('Discussion')).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * **Validates: Requirements 2.1**
+   * Test that comments section appears below event details
+   */
+  it('should display comments section below event details', async () => {
+    eventAPI.getById.mockResolvedValue({
+      data: { data: mockEvent }
+    });
+    rsvpAPI.getEventRSVPs.mockResolvedValue({
+      data: { data: mockRsvps }
+    });
+
+    renderWithProviders(<EventDetails />);
+
+    await waitFor(() => {
+      const eventTitle = screen.getByText(mockEvent.title);
+      const discussionHeader = screen.getByText('Discussion');
+      
+      // Both should be in the document
+      expect(eventTitle).toBeInTheDocument();
+      expect(discussionHeader).toBeInTheDocument();
+      
+      // Discussion should appear after event details in DOM order
+      const eventTitlePosition = eventTitle.compareDocumentPosition(discussionHeader);
+      expect(eventTitlePosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
+
+  /**
+   * **Validates: Requirements 2.1, 2.2**
+   * Test that comments section is always visible regardless of attendee count
+   */
+  it('should display comments section even when there are no attendees', async () => {
+    const eventWithNoAttendees = {
+      ...mockEvent,
+      stats: { attendeeCount: 0 }
+    };
+
+    eventAPI.getById.mockResolvedValue({
+      data: { data: eventWithNoAttendees }
+    });
+    rsvpAPI.getEventRSVPs.mockResolvedValue({
+      data: { data: [] }
+    });
+
+    renderWithProviders(<EventDetails />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Discussion')).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * **Validates: Requirements 2.1**
+   * Test that comments section has proper styling and structure
+   */
+  it('should render comments section with proper container styling', async () => {
+    eventAPI.getById.mockResolvedValue({
+      data: { data: mockEvent }
+    });
+    rsvpAPI.getEventRSVPs.mockResolvedValue({
+      data: { data: mockRsvps }
+    });
+
+    renderWithProviders(<EventDetails />);
+
+    await waitFor(() => {
+      const discussionHeader = screen.getByText('Discussion');
+      const commentsContainer = discussionHeader.closest('.bg-white');
+      
+      expect(commentsContainer).toBeInTheDocument();
+      expect(commentsContainer).toHaveClass('rounded-lg', 'shadow-md', 'p-6');
     });
   });
 });

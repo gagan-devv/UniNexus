@@ -7,6 +7,7 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import ImageDisplay from '../components/common/ImageDisplay';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import EventCreationForm from '../components/specific/EventCreationForm';
+import CommentThread from '../components/specific/CommentThread';
 
 const EventDetails = () => {
   const { id } = useParams();
@@ -420,7 +421,7 @@ const EventDetails = () => {
 
         {/* Attendees List */}
         {attendees.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Attendees ({attendees.length})
             </h2>
@@ -444,6 +445,14 @@ const EventDetails = () => {
             </div>
           </div>
         )}
+
+        {/* Comments Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            Discussion
+          </h2>
+          <CommentThread eventId={id} currentUser={user} />
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}

@@ -40,6 +40,15 @@ const createEvent = async (req: AuthenticatedRequest, res: Response): Promise<vo
             return;
         }
 
+        // Check if club is approved
+        if (club.status !== 'approved') {
+            res.status(403).json({
+                success: false,
+                message: 'Your club must be approved before you can create events. Please wait for admin approval.'
+            });
+            return;
+        }
+
         const eventData = validation.data!;
         const newEvent = await Event.create({
             ...eventData,

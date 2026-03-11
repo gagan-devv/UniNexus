@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from './config/db';
-import { connectRedis, disconnectRedis, checkRedisHealth } from './config/redis';
+import { connectRedis, disconnectRedis, checkRedisHealth, clearRedisCache } from './config/redis';
 import { initializeS3, getS3Client, getS3BucketName } from './config/s3';
 import { getMediaService } from './services/mediaService';
 import { logger } from './utils/logger';
@@ -20,6 +20,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import settingsRoutes from "./routes/settingsRoutes";
 import commentRoutes from "./routes/commentRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("UniNexus API is running...");
@@ -77,6 +79,12 @@ const startServer = async (): Promise<void> => {
     
     // Connect to Redis (non-blocking - app continues if Redis fails)
     await connectRedis();
+    
+    // Clear Redis cache on startup (optional - controlled by env variable)
+    if (process.env.CLEAR_REDIS_ON_START === 'true') {
+      logger.info('🧹 Clearing Redis cache on startup...');
+      await clearRedisCache();
+    }
     
     // Initialize S3 (non-blocking - app continues if S3 fails)
     const s3Client = initializeS3();
