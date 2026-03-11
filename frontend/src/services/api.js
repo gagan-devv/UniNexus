@@ -187,4 +187,12 @@ export const settingsAPI = {
   changePassword: (currentPassword, newPassword) => api.put('/settings/password', { currentPassword, newPassword }),
 };
 
+export const commentAPI = {
+  getByEvent: (eventId, params) => api.get(`/comments/event/${eventId}`, { params }),
+  create: (data) => api.post('/comments', data),
+  update: (id, data) => api.put(`/comments/${id}`, data),
+  delete: (id) => api.delete(`/comments/${id}`),
+  vote: (id, voteType) => api.post(`/comments/${id}/vote`, { voteType }),
+};
+
 export default api;
