@@ -47,7 +47,8 @@ const registerClub = async (req: AuthenticatedRequest, res: Response): Promise<v
             user: req.user._id,
             name: clubData.name,
             description: clubData.description,
-            email: clubData.email
+            email: clubData.email,
+            status: 'pending'  // Explicitly set pending status for approval workflow
         };
 
         // Only add optional fields if they have actual values
@@ -84,7 +85,9 @@ const getAllClubs = async (req: Request, res: Response): Promise<void> => {
     try {
         const { verified, category, limit = 20, offset = 0 } = req.query;
 
-        const query: Record<string, unknown> = {};
+        const query: Record<string, unknown> = {
+            status: 'approved'  // Only show approved clubs in public listings
+        };
 
         if (verified === 'true') {
             query.isVerified = true;
