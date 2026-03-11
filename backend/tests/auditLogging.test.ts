@@ -15,8 +15,11 @@ app.use('/api/clubs', clubRoutes);
 
 // Helper to create a test user
 async function createTestUser(role: 'student' | 'admin' = 'student'): Promise<IUser> {
+  // Generate a short random string to keep username under 30 chars
+  const randomStr = Math.random().toString(36).substring(2, 8); // 6 chars
+  const timestamp = Date.now().toString().slice(-8); // Last 8 digits
   const userData = {
-    username: `testuser_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+    username: `test_${timestamp}_${randomStr}`, // Format: test_12345678_abc123 (max 23 chars)
     email: `test_${Date.now()}_${Math.random().toString(36).substring(7)}@example.com`,
     password: 'Test123!@#',
     role
