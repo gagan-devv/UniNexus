@@ -38,25 +38,21 @@ const CommentSchema = new Schema<IComment>({
     author: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
-        index: true
+        required: true
     },
     eventId: {
         type: Schema.Types.ObjectId,
         ref: 'Event',
-        required: true,
-        index: true
+        required: true
     },
     parentId: {
         type: Schema.Types.ObjectId,
         ref: 'Comment',
-        default: null,
-        index: true
+        default: null
     },
     path: {
         type: String,
-        default: '',
-        index: true
+        default: ''
     },
     depth: {
         type: Number,
@@ -126,6 +122,8 @@ CommentSchema.pre('save', function() {
 CommentSchema.index({ eventId: 1, path: 1 });
 CommentSchema.index({ eventId: 1, voteCount: -1 });
 CommentSchema.index({ eventId: 1, createdAt: -1 });
+CommentSchema.index({ eventId: 1, depth: 1 }); // For lazy loading with maxDepth
 CommentSchema.index({ author: 1 });
+CommentSchema.index({ path: 1 }); // For finding children by path prefix
 
 export const Comment = mongoose.model<IComment>('Comment', CommentSchema);

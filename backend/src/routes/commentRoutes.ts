@@ -1,7 +1,9 @@
 import express from 'express';
 import { 
     createComment, 
-    getCommentsByEvent, 
+    getCommentsByEvent,
+    getCommentChildren,
+    getCommentCount,
     updateComment, 
     deleteComment,
     voteOnComment
@@ -16,6 +18,12 @@ router.post('/', protect, createComment);
 
 // Get comments for an event (public)
 router.get('/event/:eventId', getCommentsByEvent);
+
+// Get comment count for an event (public, cached)
+router.get('/event/:eventId/count', getCommentCount);
+
+// Get children of a specific comment (for lazy loading)
+router.get('/:id/children', getCommentChildren);
 
 // Update comment (requires authentication, author only)
 router.put('/:id', protect, updateComment);

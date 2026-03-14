@@ -186,6 +186,40 @@ export class CacheService {
   }
 
   /**
+   * Comment caching methods
+   */
+
+  /**
+   * Get cached comment count for an event
+   * @param eventId - Event ID
+   * @returns Cached comment count or null
+   */
+  async getCommentCount(eventId: string): Promise<number | null> {
+    const key = this.generateKey('comments', 'count', eventId);
+    return await this.get(key);
+  }
+
+  /**
+   * Cache comment count for an event
+   * @param eventId - Event ID
+   * @param count - Comment count
+   * @param ttl - Time to live in seconds (default: 300 = 5 minutes)
+   */
+  async setCommentCount(eventId: string, count: number, ttl: number = 300): Promise<void> {
+    const key = this.generateKey('comments', 'count', eventId);
+    await this.set(key, count, ttl);
+  }
+
+  /**
+   * Invalidate comment count cache for an event
+   * @param eventId - Event ID
+   */
+  async invalidateCommentCount(eventId: string): Promise<void> {
+    const key = this.generateKey('comments', 'count', eventId);
+    await this.del(key);
+  }
+
+  /**
    * Health check
    */
   async ping(): Promise<boolean> {

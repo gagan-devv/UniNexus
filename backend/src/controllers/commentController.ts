@@ -4,6 +4,7 @@ import { Event } from '../models/Event';
 import { User, IUser } from '../models/User';
 import { ClubProfile } from '../models/ClubProfile';
 import { logger } from '../utils/logger';
+import { getCacheService } from '../services/cacheService';
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
@@ -144,6 +145,10 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
             depth
         });
 
+        // Invalidate comment count cache for this event
+        const cacheService = getCacheService();
+        await cacheService.invalidateCommentCount(eventId);
+
         // Populate author details
         const populatedComment = await Comment.findById(newComment._id)
             .populate('author', 'username email avatarUrl');
@@ -166,11 +171,12 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
 /**
  * Get all comments for an event with sorting
  * GET /api/comments/event/:eventId
+ * Query params: sort, limit, cursor, maxDepth
  */
 export const getCommentsByEvent = async (req: Request, res: Response): Promise<void> => {
     try {
         const { eventId } = req.params;
-        const { sort = 'hot', limit = 500, cursor } = req.query;
+        const { sort = 'hot', limit = 500, cursor, maxDepth } = req.query;
 
         // Validate event exists
         const event = await Event.findById(eventId);
@@ -188,8 +194,14 @@ export const getCommentsByEvent = async (req: Request, res: Response): Promise<v
             query._id = { $gt: cursor };
         }
 
+        // Add depth filter for lazy loading
+        if (maxDepth) {
+            query.depth = { $lte: Number(maxDepth) };
+        }
+
         // Fetch comments
         const comments = await Comment.find(query)
+            .select('-__v') // Exclude version key
             .populate('author', 'username email avatarUrl')
             .limit(Number(limit))
             .lean();
@@ -447,6 +459,10 @@ export const deleteComment = async (req: AuthenticatedRequest, res: Response): P
 
         await comment.save();
 
+        // Invalidate comment count cache for this event
+        const cacheService = getCacheService();
+        await cacheService.invalidateCommentCount(comment.eventId.toString());
+
         // TODO: Create audit log for moderation actions
         // The current AuditLog model is designed for club member management
         // Need to extend it to support comment moderation
@@ -458,6 +474,109 @@ export const deleteComment = async (req: AuthenticatedRequest, res: Response): P
 
     } catch (error) {
         logger.error('Delete comment error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+/**
+ * Get children comments for a specific comment (for lazy loading deep threads)
+ * GET /api/comments/:id/children
+ */
+export const getCommentChildren = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { limit = 100 } = req.query;
+
+        // Find parent comment
+        const parentComment = await Comment.findById(id);
+        if (!parentComment) {
+            res.status(404).json({
+                success: false,
+                message: 'Comment not found'
+            });
+            return;
+        }
+
+        // Find all children using path pattern
+        // Children have path that starts with parent's path + parent's id
+        const childPathPrefix = parentComment.path + parentComment._id + '.';
+        
+        const children = await Comment.find({
+            path: new RegExp(`^${childPathPrefix.replace(/\./g, '\\.')}`),
+            isDeleted: false
+        })
+            .select('-__v') // Exclude version key
+            .populate('author', 'username email avatarUrl')
+            .sort({ path: 1, createdAt: -1 })
+            .limit(Number(limit))
+            .lean();
+
+        res.json({
+            success: true,
+            data: {
+                children,
+                count: children.length
+            }
+        });
+
+    } catch (error) {
+        logger.error('Get comment children error:', error instanceof Error ? error.message : String(error));
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+/**
+ * Get comment count for an event (with caching)
+ * GET /api/comments/event/:eventId/count
+ */
+export const getCommentCount = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { eventId } = req.params;
+
+        if (!eventId || typeof eventId !== 'string') {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid event ID'
+            });
+            return;
+        }
+
+        // Validate event exists
+        const event = await Event.findById(eventId);
+        if (!event) {
+            res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+            return;
+        }
+
+        const cacheService = getCacheService();
+
+        // Try to get from cache first
+        let count = await cacheService.getCommentCount(eventId);
+
+        if (count === null) {
+            // Cache miss - fetch from database
+            count = await Comment.countDocuments({ eventId: eventId, isDeleted: false });
+            
+            // Cache for 5 minutes
+            await cacheService.setCommentCount(eventId, count, 300);
+        }
+
+        res.json({
+            success: true,
+            data: { count }
+        });
+
+    } catch (error) {
+        logger.error('Get comment count error:', error instanceof Error ? error.message : String(error));
         res.status(500).json({
             success: false,
             message: 'Internal server error'
