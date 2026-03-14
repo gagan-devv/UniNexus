@@ -4,7 +4,6 @@ import { Event } from '../models/Event';
 import { User, IUser } from '../models/User';
 import { ClubProfile } from '../models/ClubProfile';
 import { logger } from '../utils/logger';
-import mongoose from 'mongoose';
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
@@ -14,16 +13,16 @@ interface AuthenticatedRequest extends Request {
  * Helper function to build materialized path for a comment
  */
 const buildPath = (parentComment: IComment | null): string => {
-    if (!parentComment) return "";
-    return parentComment.path + parentComment._id + ".";
+    if (!parentComment) return '';
+    return parentComment.path + parentComment._id + '.';
 };
 
 /**
  * Helper function to calculate depth from path
  */
-const calculateDepth = (path: string): number => {
-    if (path === "") return 0;
-    return path.split(".").filter(Boolean).length;
+export const calculateDepth = (path: string): number => {
+    if (path === '') return 0;
+    return path.split('.').filter(Boolean).length;
 };
 
 /**
@@ -104,7 +103,7 @@ export const createComment = async (req: AuthenticatedRequest, res: Response): P
         // Sanitize content to prevent XSS
         const sanitizedContent = sanitizeContent(trimmedContent);
 
-        let path = "";
+        let path = '';
         let depth = 0;
         let parentComment: IComment | null = null;
 
@@ -190,7 +189,7 @@ export const getCommentsByEvent = async (req: Request, res: Response): Promise<v
         }
 
         // Fetch comments
-        let comments = await Comment.find(query)
+        const comments = await Comment.find(query)
             .populate('author', 'username email avatarUrl')
             .limit(Number(limit))
             .lean();

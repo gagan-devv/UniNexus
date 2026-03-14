@@ -15,9 +15,10 @@ app.use('/api/clubs', clubRoutes);
 
 // Helper to create a test user
 async function createTestUser(role: 'student' | 'admin' = 'student'): Promise<IUser> {
+  const suffix = Math.random().toString(36).substring(2, 8);
   const userData = {
-    username: `testuser_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-    email: `test_${Date.now()}_${Math.random().toString(36).substring(7)}@example.com`,
+    username: `u${suffix}`,
+    email: `test${suffix}@example.com`,
     password: 'Test123!@#',
     role
   };
@@ -33,11 +34,12 @@ function generateAuthToken(userId: mongoose.Types.ObjectId): string {
 
 // Helper to create a test club
 async function createTestClub(ownerId: mongoose.Types.ObjectId): Promise<IClubProfile> {
+  const suffix = Math.random().toString(36).substring(2, 8);
   const clubData = {
     user: ownerId,
-    name: `Test Club ${Date.now()}`,
+    name: `Test Club ${suffix}`,
     description: 'A test club for testing purposes',
-    email: `club_${Date.now()}@test.com`,
+    email: `club${suffix}@test.com`,
     category: 'Technology' as const
   };
   
@@ -56,13 +58,6 @@ async function addAdminMember(clubId: mongoose.Types.ObjectId, userId: mongoose.
 }
 
 describe('Member Management API Tests', () => {
-  beforeEach(async () => {
-    // Clean up before each test
-    await User.deleteMany({});
-    await ClubProfile.deleteMany({});
-    await ClubMember.deleteMany({});
-    await AuditLog.deleteMany({});
-  });
 
   describe('Property 10: Member Addition', () => {
     /**
@@ -122,12 +117,6 @@ describe('Member Management API Tests', () => {
             // Verify all members are in the club
             const allMembers = await ClubMember.find({ clubId: club._id });
             expect(allMembers.length).toBe(numUsers);
-
-            // Cleanup
-            await User.deleteMany({ _id: { $in: [owner._id, ...usersToAdd.map(u => u._id)] } });
-            await ClubProfile.findByIdAndDelete(club._id);
-            await ClubMember.deleteMany({ clubId: club._id });
-            await AuditLog.deleteMany({ clubId: club._id });
           }
         ),
         { numRuns: 5, timeout: 60000 }
@@ -156,12 +145,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('User is already a member of this club');
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, userToAdd._id] } });
-      await ClubProfile.findByIdAndDelete(club._id);
-      await ClubMember.deleteMany({ clubId: club._id });
-      await AuditLog.deleteMany({ clubId: club._id });
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -178,10 +161,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('User not found');
-
-      // Cleanup
-      await User.findByIdAndDelete(owner._id);
-      await ClubProfile.findByIdAndDelete(club._id);
     });
 
     it('should return 404 for non-existent club', async () => {
@@ -198,9 +177,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Club not found');
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, userToAdd._id] } });
     });
   });
 
@@ -269,12 +245,6 @@ describe('Member Management API Tests', () => {
             const remainingMembers = await ClubMember.find({ clubId: club._id });
             expect(remainingMembers.length).toBe(1); // Only owner/admin remains
             expect(remainingMembers[0]?.userId.toString()).toBe(owner._id.toString());
-
-            // Cleanup
-            await User.deleteMany({ _id: { $in: [owner._id, ...members.map(m => m._id)] } });
-            await ClubProfile.findByIdAndDelete(club._id);
-            await ClubMember.deleteMany({ clubId: club._id });
-            await AuditLog.deleteMany({ clubId: club._id });
           }
         ),
         { numRuns: 5, timeout: 60000 }
@@ -304,11 +274,6 @@ describe('Member Management API Tests', () => {
         userId: owner._id
       });
       expect(adminMember).toBeDefined();
-
-      // Cleanup
-      await User.findByIdAndDelete(owner._id);
-      await ClubProfile.findByIdAndDelete(club._id);
-      await ClubMember.deleteMany({ clubId: club._id });
     });
   });
 
@@ -377,12 +342,6 @@ describe('Member Management API Tests', () => {
               expect(auditLog?.details?.previousRole).toBe(initialRole);
               expect(auditLog?.details?.newRole).toBe(targetRole);
             }
-
-            // Cleanup
-            await User.deleteMany({ _id: { $in: [owner._id, ...members.map(m => m._id)] } });
-            await ClubProfile.findByIdAndDelete(club._id);
-            await ClubMember.deleteMany({ clubId: club._id });
-            await AuditLog.deleteMany({ clubId: club._id });
           }
         ),
         { numRuns: 5, timeout: 60000 }
@@ -413,11 +372,6 @@ describe('Member Management API Tests', () => {
         userId: owner._id
       });
       expect(adminMember?.role).toBe('admin');
-
-      // Cleanup
-      await User.findByIdAndDelete(owner._id);
-      await ClubProfile.findByIdAndDelete(club._id);
-      await ClubMember.deleteMany({ clubId: club._id });
     });
   });
 
@@ -490,11 +444,6 @@ describe('Member Management API Tests', () => {
 
             expect(response.status).toBe(401);
             expect(response.body.success).toBe(false);
-
-            // Cleanup
-            await User.deleteMany({ _id: { $in: [owner._id, nonAdmin._id, targetUser._id] } });
-            await ClubProfile.findByIdAndDelete(club._id);
-            await ClubMember.deleteMany({ clubId: club._id });
           }
         ),
         { numRuns: 5, timeout: 60000 }
@@ -562,11 +511,6 @@ describe('Member Management API Tests', () => {
             } else {
               expect(response.body.message).toMatch(/not found/i);
             }
-
-            // Cleanup
-            await User.findByIdAndDelete(owner._id);
-            await ClubProfile.findByIdAndDelete(club._id);
-            await ClubMember.deleteMany({ clubId: club._id });
           }
         ),
         { numRuns: 5, timeout: 60000 }
@@ -589,12 +533,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Member added successfully');
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, userToAdd._id] } });
-      await ClubProfile.findByIdAndDelete(club._id);
-      await ClubMember.deleteMany({ clubId: club._id });
-      await AuditLog.deleteMany({ clubId: club._id });
     });
 
     it('Unit: should successfully remove a member', async () => {
@@ -620,12 +558,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Member removed successfully');
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, member._id] } });
-      await ClubProfile.findByIdAndDelete(club._id);
-      await ClubMember.deleteMany({ clubId: club._id });
-      await AuditLog.deleteMany({ clubId: club._id });
     });
 
     it('Unit: should successfully update member role', async () => {
@@ -652,12 +584,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Member role updated successfully');
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, member._id] } });
-      await ClubProfile.findByIdAndDelete(club._id);
-      await ClubMember.deleteMany({ clubId: club._id });
-      await AuditLog.deleteMany({ clubId: club._id });
     });
 
     it('Unit: should handle non-existent user', async () => {
@@ -674,10 +600,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('User not found');
-
-      // Cleanup
-      await User.findByIdAndDelete(owner._id);
-      await ClubProfile.findByIdAndDelete(club._id);
     });
 
     it('Unit: should handle non-existent club', async () => {
@@ -694,9 +616,6 @@ describe('Member Management API Tests', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Club not found');
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, userToAdd._id] } });
     });
 
     it('Unit: should handle unauthenticated request', async () => {
@@ -710,10 +629,6 @@ describe('Member Management API Tests', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-
-      // Cleanup
-      await User.deleteMany({ _id: { $in: [owner._id, userToAdd._id] } });
-      await ClubProfile.findByIdAndDelete(club._id);
     });
   });
 });

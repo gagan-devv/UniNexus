@@ -19,21 +19,28 @@ import { Event } from '../src/models/Event';
 import { ClubProfile } from '../src/models/ClubProfile';
 import { createComment, getCommentsByEvent, updateComment, deleteComment } from '../src/controllers/commentController';
 import jwt from 'jsonwebtoken';
+import { AuthService } from '../src/services/authService';
 
 // Create a minimal Express app for testing
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
   
-  // Auth middleware
-  app.use((req: any, res, next) => {
+  // Auth middleware - FIXED: Now fetches full user object from database
+  app.use(async (req: any, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
-        req.user = decoded;
+        const decoded = AuthService.verifyAccessToken(token);
+        if (decoded) {
+          // Fetch full user object from database
+          const user = await User.findById(decoded.id).select('-password -refreshToken');
+          if (user) {
+            req.user = user;
+          }
+        }
       } catch (error) {
-        // Invalid token
+        // Invalid token - continue without user
       }
     }
     next();
@@ -78,17 +85,9 @@ describe('Comment Endpoints Unit Tests', () => {
     });
 
     // Generate auth tokens
-    authToken = jwt.sign(
-      { _id: testUser._id, username: testUser.username, email: testUser.email },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
+    authToken = AuthService.generateAccessToken(testUser._id.toString());
 
-    authToken2 = jwt.sign(
-      { _id: testUser2._id, username: testUser2.username, email: testUser2.email },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
+    authToken2 = AuthService.generateAccessToken(testUser2._id.toString());
 
     // Create club profile
     testClubProfile = await ClubProfile.create({
