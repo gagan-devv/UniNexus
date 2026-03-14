@@ -194,16 +194,12 @@ export const settingsAPI = {
   changePassword: (currentPassword, newPassword) => api.put('/settings/password', { currentPassword, newPassword }),
 };
 
-export const adminAPI = {
-  getPendingClubs: (params) => api.get('/admin/clubs/pending', { params }),
-  approveClub: (id) => api.post(`/admin/clubs/${id}/approve`),
-  rejectClub: (id, data) => api.post(`/admin/clubs/${id}/reject`, data),
 export const commentAPI = {
-  getByEvent: (eventId, params) => api.get(`/comments/event/${eventId}`, { params }),
+  getByEvent: (eventId, params) => api.get(`/comments/events/${eventId}`, { params }),
   create: (data) => api.post('/comments', data),
-  update: (id, data) => api.put(`/comments/${id}`, data),
-  delete: (id) => api.delete(`/comments/${id}`),
-  vote: (id, voteType) => api.post(`/comments/${id}/vote`, { voteType }),
+  update: (commentId, data) => api.put(`/comments/${commentId}`, data),
+  delete: (commentId) => api.delete(`/comments/${commentId}`),
+  vote: (commentId, voteType) => api.post(`/comments/${commentId}/vote`, { voteType }),
 };
 
 export default api;

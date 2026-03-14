@@ -18,21 +18,28 @@ import request from 'supertest';
 import express from 'express';
 import { updateComment, deleteComment } from '../src/controllers/commentController';
 import jwt from 'jsonwebtoken';
+import { AuthService } from '../src/services/authService';
 
 // Create a minimal Express app for testing
 const createTestApp = () => {
   const app = express();
   app.use(express.json());
   
-  // Auth middleware
-  app.use((req: any, res, next) => {
+  // Auth middleware - FIXED: Now fetches full user object from database
+  app.use(async (req: any, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
-        req.user = decoded;
+        const decoded = AuthService.verifyAccessToken(token);
+        if (decoded) {
+          // Fetch full user object from database
+          const user = await User.findById(decoded.id).select('-password -refreshToken');
+          if (user) {
+            req.user = user;
+          }
+        }
       } catch (error) {
-        // Invalid token
+        // Invalid token - continue without user
       }
     }
     next();
@@ -118,11 +125,7 @@ describe('Property 5: Authorization Enforcement', () => {
    * Helper to generate JWT token for a user
    */
   const generateToken = (user: IUser): string => {
-    return jwt.sign(
-      { _id: user._id, username: user.username, email: user.email },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
+    return AuthService.generateAccessToken(user._id.toString());
   };
 
   /**

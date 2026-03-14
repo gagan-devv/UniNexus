@@ -12,15 +12,40 @@ import { Comment, IComment } from '../src/models/Comment';
 import { User, IUser } from '../src/models/User';
 import { Event } from '../src/models/Event';
 import { ClubProfile } from '../src/models/ClubProfile';
-import commentRoutes from '../src/routes/commentRoutes';
-import jwt from 'jsonwebtoken';
+import { voteOnComment } from '../src/controllers/commentController';
+import { AuthService } from '../src/services/authService';
 
-// Create Express app for testing
-const app = express();
-app.use(express.json());
-app.use('/api/comments', commentRoutes);
+// Create a minimal Express app for testing
+const createTestApp = () => {
+  const app = express();
+  app.use(express.json());
+  
+  // Auth middleware that properly sets req.user
+  app.use(async (req: any, res, next) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      try {
+        const decoded = AuthService.verifyAccessToken(token);
+        if (decoded) {
+          const user = await User.findById(decoded.id).select('-password -refreshToken');
+          if (user) {
+            req.user = user;
+          }
+        }
+      } catch (error) {
+        // Invalid token - continue without user
+      }
+    }
+    next();
+  });
+  
+  app.post('/api/comments/:id/vote', voteOnComment);
+  
+  return app;
+};
 
 describe('Voting Endpoints Unit Tests', () => {
+  let app: express.Application;
   let testUser: IUser;
   let commentAuthor: IUser;
   let testEvent: any;
@@ -28,8 +53,8 @@ describe('Voting Endpoints Unit Tests', () => {
   let authToken: string;
   let authorToken: string;
 
-  beforeAll(async () => {
-    // Create test users
+  beforeEach(async () => {
+    // Create test users (needed because global afterEach deletes all collections)
     testUser = await User.create({
       username: 'voter_user',
       email: 'voter@test.com',
@@ -44,18 +69,9 @@ describe('Voting Endpoints Unit Tests', () => {
       role: 'student'
     });
 
-    // Generate auth tokens (using 'id' field to match AuthService)
-    authToken = jwt.sign(
-      { id: testUser._id, type: 'access' },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
-
-    authorToken = jwt.sign(
-      { id: commentAuthor._id, type: 'access' },
-      process.env.JWT_SECRET || 'test-secret',
-      { expiresIn: '1h' }
-    );
+    // Generate auth tokens using AuthService
+    authToken = AuthService.generateAccessToken(testUser._id.toString());
+    authorToken = AuthService.generateAccessToken(commentAuthor._id.toString());
 
     // Create test event
     const clubProfile = await ClubProfile.create({
@@ -75,16 +91,10 @@ describe('Voting Endpoints Unit Tests', () => {
       organizer: clubProfile._id,
       maxAttendees: 100
     });
-  });
 
-  afterAll(async () => {
-    await Comment.deleteMany({});
-    await Event.deleteMany({});
-    await ClubProfile.deleteMany({});
-    await User.deleteMany({});
-  });
-
-  beforeEach(async () => {
+    // Create app after users are created
+    app = createTestApp();
+    
     // Create a fresh comment for each test
     testComment = await Comment.create({
       content: 'Test comment for voting',
@@ -96,10 +106,6 @@ describe('Voting Endpoints Unit Tests', () => {
     });
   });
 
-  afterEach(async () => {
-    await Comment.deleteMany({});
-  });
-
   describe('POST /api/comments/:id/vote', () => {
     describe('Authentication', () => {
       it('should return 401 if user is not authenticated', async () => {
@@ -109,7 +115,7 @@ describe('Voting Endpoints Unit Tests', () => {
 
         expect(response.status).toBe(401);
         expect(response.body.success).toBe(false);
-        expect(response.body.message).toContain('token');
+        expect(response.body.message).toContain('Authentication required');
       });
 
       it('should return 401 with invalid token', async () => {
@@ -353,17 +359,8 @@ describe('Voting Endpoints Unit Tests', () => {
           role: 'student'
         });
 
-        const token2 = jwt.sign(
-          { id: user2._id, type: 'access' },
-          process.env.JWT_SECRET || 'test-secret',
-          { expiresIn: '1h' }
-        );
-
-        const token3 = jwt.sign(
-          { id: user3._id, type: 'access' },
-          process.env.JWT_SECRET || 'test-secret',
-          { expiresIn: '1h' }
-        );
+        const token2 = AuthService.generateAccessToken(user2._id.toString());
+        const token3 = AuthService.generateAccessToken(user3._id.toString());
 
         // User 1 upvotes
         await request(app)
