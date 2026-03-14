@@ -1,172 +1,349 @@
 # UniNexus - Campus Event & Community Platform
 
-## 1. Project Overview
+UniNexus is a comprehensive campus engagement platform that centralizes event discovery, club management, and community discussions. Built with modern web technologies, it provides students with a unified hub for campus activities while offering clubs powerful tools to manage their presence and engage with their audience.
 
-**Objective**: To build a centralized platform that unifies fragmented campus information, including events, club activities, and student communities. The platform aims to replace scattered communication channels (WhatsApp, posters, Instagram) with a structured, searchable, and AI-enhanced feed.
+## Project Overview
+
+**Mission**: Transform fragmented campus communication (WhatsApp groups, Instagram posts, physical posters) into a centralized, searchable, and engaging digital platform.
 
 **Core Value Proposition**:
-- **Centralization**: All campus activities in one place.
-- **Discovery**: Semantic search to find relevant events easily.
-- **Community**: Reddit-style discussions to foster deeper engagement.
+- **Centralization**: All campus events, clubs, and discussions in one place
+- **Discovery**: Advanced search and filtering to find relevant events instantly
+- **Community**: Reddit-style threaded discussions with voting for quality content
+- **Engagement**: RSVP tracking, notifications, and real-time messaging
+- **Quality Control**: Admin approval workflow ensures legitimate clubs and content
 
-## 2. Feature Implementation Matrix
+## Features
 
-This matrix outlines the features required for the Minimum Viable Product (MVP) to prove the concept, versus "Optimal" features for future production releases.
+UniNexus is organized into four core modules, each providing essential functionality for campus engagement.
 
-### Module A: Authentication & User Management
+### 🔐 Authentication & User Management
 
-| Feature | Type | Description | Tools & Tech Stack |
-|---------|------|-------------|-------------------|
-| **Student Login** | MVP | Secure Email/Password login with JWT session management. | Node.js, Express, JWT, bcrypt |
-| **Club Profiles** | MVP | Profiles for clubs to display logos, descriptions, and social links. | React, MongoDB, AWS S3 |
-| **Admin Dashboard** | MVP | Super-admin panel to approve/reject new club registrations. | React Admin / Custom Dashboard |
-| **User Flairs** | Optimal | Tags like "CS '26" or "Club President" displayed next to names. | MongoDB (User Schema), CSS |
+**Implemented Features:**
+- **Secure Authentication**: JWT-based login with bcrypt password hashing
+- **User Profiles**: Customizable profiles with avatars and bio
+- **Club Profiles**: Rich club pages with logos, descriptions, social links, and member management
+- **Role-Based Access**: Student, Club Admin, and Super Admin roles with granular permissions
+- **Admin Dashboard**: Super-admin panel for club registration approval/rejection workflow
+- **Settings Management**: User preferences, notification settings, and account management
 
-### Module B: Events Engine
+**Tech Stack**: Express.js, JWT, bcryptjs, MongoDB, AWS S3
 
-| Feature | Type | Description | Tools & Tech Stack |
-|---------|------|-------------|-------------------|
-| **Unified Event Feed** | MVP | Chronological feed of events with filtering (Date, Category). | MongoDB (Aggregations), React |
-| **Event CRUD** | MVP | Form for clubs to create, update, and delete events with images. | React Hook Form, AWS S3 |
-| **Semantic Search** | MVP | Search by meaning (e.g., "coding" finds "Hackathon"). | Pinecone / MongoDB Atlas, OpenAI |
-| **Basic RSVP** | MVP | "I'm interested" button adds the event to the user's list. | MongoDB (User-Event Relation) |
-| **Poster-to-Event** | Optimal | AI extracts Date/Time/Venue from uploaded poster images. | Tesseract.js (OCR) + LLM |
-| **Calendar Sync** | Optimal | "Add to Google Calendar" button for students. | Google Calendar API |
+---
 
-### Module C: Community & Social ("The Reddit Layer")
+### 📅 Events Engine
 
-| Feature | Type | Description | Tools & Tech Stack |
-|---------|------|-------------|-------------------|
-| **Threaded Comments** | MVP | Nested comments (Parent -> Child) with infinite depth support. | MongoDB (Materialized Path) |
-| **Voting System** | MVP | Upvote/Downvote functionality for visibility. | MongoDB (Atomic operators) |
-| **Rich Text Editor** | Optimal | Markdown support, code blocks, and inline images in comments. | Markdown-to-JSX |
-| **Real-time Updates** | Optimal | New comments appear instantly without refreshing. | Socket.io |
-| **Anonymous Mode** | Optimal | "Confession" style posts with identity masking. | Node.js Middleware |
+**Implemented Features:**
+- **Unified Event Feed**: Chronological feed with advanced filtering (date, category, club)
+- **Event CRUD**: Full create, read, update, delete operations for club admins
+- **Rich Event Details**: Images, descriptions, venue, date/time, capacity, and RSVP tracking
+- **RSVP System**: Students can express interest and track their event list
+- **Event Discovery**: Search and filter events by multiple criteria
+- **Trending Events**: Algorithm-based trending page highlighting popular events
+- **Event Notifications**: Automated notifications for RSVPs, updates, and reminders
 
-### Module D: AI Integrations
+**Tech Stack**: React, MongoDB (Aggregations), AWS S3, Express.js
 
-| Feature | Type | Description | Tools & Tech Stack |
-|---------|------|-------------|-------------------|
-| **Thread Summarizer** | MVP | Button to summarize long discussions into bullet points. | LangChain, OpenAI / Llama 3 |
-| **Smart Recommender** | Optimal | "Events you might like" based on past RSVPs. | Collaborative Filtering |
-| **Duplicate Detector** | Optimal | AI warns if a similar question/event already exists before posting. | Vector Similarity Search |
+---
 
-## 3. Technical Implementation Details
+### 💬 Community & Social ("The Reddit Layer")
 
-### A. Database Schema for Threaded Comments
-To handle nested discussions efficiently, the project will use the **Materialized Path Pattern** in MongoDB. This avoids recursive queries and ensures high read performance.
+**Implemented Features:**
+- **Threaded Comments**: Infinite-depth nested discussions using materialized path pattern
+- **Voting System**: Upvote/downvote with atomic operations preventing race conditions
+- **Comment Sorting**: Hot, Top, New, and Controversial sorting algorithms
+- **Comment Moderation**: Event organizers can moderate discussions on their events
+- **Soft Deletes**: Deleted comments preserve thread structure
+- **Collapse/Expand**: Collapsible comment threads for easy navigation
+- **Real-time Vote Counts**: Instant feedback on voting actions
+- **Edit History**: Track comment edits with timestamps
 
-- **Structure**: Each comment stores a path string (e.g., `GrandparentID.ParentID`).
-- **Benefit**: Allows fetching an entire discussion tree in a single database query by sorting by path.
+**Tech Stack**: MongoDB (Materialized Path), React, Atomic MongoDB Operations
 
-### B. Media Storage (AWS S3)
-All static assets (event posters, user avatars, club logos) will be offloaded to cloud storage.
+---
 
-- **Service**: AWS S3 (Simple Storage Service).
-- **Library**: multer-s3 for Node.js.
-- **Workflow**: Files are streamed directly from the API to the S3 bucket; the database stores only the public URL.
+### 🔔 Notifications & Messaging
 
-### C. Semantic Search Architecture
-Enables users to search by intent rather than exact keywords.
+**Implemented Features:**
+- **Notification Center**: Centralized hub for all user notifications
+- **Direct Messaging**: One-on-one conversations between users
+- **Notification Types**: Event updates, RSVPs, comment replies, club approvals, moderation actions
+- **Read/Unread Tracking**: Badge counts and notification status management
+- **Audit Logging**: Complete audit trail for admin actions and moderation
 
-- **Vector Database**: Pinecone or MongoDB Atlas Vector Search.
-- **Embedding Model**: OpenAI text-embedding-3-small or HuggingFace local models.
-- **Process**: Event descriptions are converted into vector embeddings upon creation. Search queries are converted to vectors to find the nearest mathematical neighbors.
+**Tech Stack**: MongoDB, React, Express.js
 
-## 4. Proposed Tech Stack Summary
+---
 
-- **Frontend**: React.js (Vite), Tailwind CSS, React Query
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB (Primary Data), Redis (Caching - Optional for MVP)
-- **AI / ML**: LangChain (Orchestration), OpenAI API (Models), Pinecone (Vector DB)
-- **Storage**: AWS S3 (Images/Media)
-- **DevOps**: Docker (Containerization), GitHub Actions (CI/CD)
+### 🎨 User Experience
 
-## 5. Target Users & Permissions
+**Implemented Features:**
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **Dark/Light Theme**: User-selectable theme with persistent preferences
+- **Sidebar Navigation**: Collapsible sidebar with quick access to all features
+- **Loading States**: Skeleton screens and loading indicators
+- **Error Handling**: User-friendly error messages and fallback UI
+- **Accessibility**: WCAG 2.1 AA compliance efforts
+- **Performance**: Optimized rendering with React best practices
 
-- **Student**: Can view events, search, RSVP, and comment.
-- **Club Admin**: Can create/edit their club profile and publish events.
-- **Super Admin**: Can approve new club registrations (security checkpoint).
+**Tech Stack**: React, Tailwind CSS, Lucide Icons
 
-## 6. Getting Started
+---
+
+### 🚀 Future Features (Roadmap)
+
+**Planned Enhancements:**
+- **Semantic Search**: AI-powered search using vector embeddings (Pinecone/OpenAI)
+- **Thread Summarization**: AI-generated summaries of long discussions
+- **Smart Recommendations**: Personalized event suggestions based on user behavior
+- **Calendar Integration**: Export events to Google Calendar, iCal
+- **Rich Text Editor**: Markdown support with code blocks and inline images
+- **Real-time Updates**: WebSocket-based live updates for comments and notifications
+- **Poster-to-Event**: OCR + AI to extract event details from poster images
+- **Anonymous Mode**: Confession-style posts with identity masking
+- **Mobile Apps**: Native iOS and Android applications
+
+## Technical Architecture
+
+### Tech Stack
+
+**Frontend:**
+- **Framework**: React 19 with Vite
+- **Styling**: Tailwind CSS 3.4
+- **Routing**: React Router DOM 7
+- **HTTP Client**: Axios
+- **Icons**: Lucide React
+- **Testing**: Vitest, React Testing Library, fast-check (property-based testing)
+
+**Backend:**
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js 5
+- **Database**: MongoDB 7 with Mongoose ODM
+- **Caching**: Redis (ioredis)
+- **Authentication**: JWT (jsonwebtoken) + bcryptjs
+- **File Storage**: AWS S3 with presigned URLs
+- **Image Processing**: Sharp
+- **Validation**: Zod
+- **Testing**: Jest, Supertest, MongoDB Memory Server, fast-check
+
+**DevOps & Tools:**
+- **Version Control**: Git + GitHub
+- **Code Quality**: ESLint, Prettier
+- **Testing**: Comprehensive unit, integration, and property-based tests
+- **Environment**: dotenv for configuration management
+
+---
+
+### Database Schema Highlights
+
+**Materialized Path Pattern for Comments:**
+```javascript
+// Enables O(1) fetching of entire comment trees
+{
+  _id: ObjectId,
+  content: String,
+  path: "parentId.grandparentId.",  // Materialized path
+  depth: Number,                     // Nesting level
+  upvotes: [ObjectId],               // Atomic voting
+  downvotes: [ObjectId],
+  voteCount: Number
+}
+```
+
+**Club Approval Workflow:**
+```javascript
+{
+  status: 'pending' | 'approved' | 'rejected',
+  approvedBy: ObjectId,
+  rejectedReason: String,
+  // Ensures quality control before clubs go live
+}
+```
+
+**Atomic Voting Operations:**
+```javascript
+// Prevents race conditions with MongoDB atomic operators
+db.comments.updateOne(
+  { _id: commentId },
+  { 
+    $addToSet: { upvotes: userId },
+    $pull: { downvotes: userId }
+  }
+)
+```
+
+---
+
+### Key Design Patterns
+
+1. **Materialized Path**: Efficient hierarchical data (comments) without recursive queries
+2. **Soft Deletes**: Preserve thread structure when comments are deleted
+3. **Atomic Operations**: Race-condition-free voting with MongoDB operators
+4. **JWT Authentication**: Stateless authentication with role-based access control
+5. **Presigned URLs**: Secure, direct-to-S3 uploads without exposing credentials
+6. **Property-Based Testing**: Universal correctness validation with 100+ iterations
+
+## User Roles & Permissions
+
+UniNexus implements a three-tier role-based access control system:
+
+### 👤 Student (Default Role)
+- View all approved events and clubs
+- Search and filter events
+- RSVP to events
+- Comment on events with voting
+- Send and receive direct messages
+- Manage personal profile and settings
+- Receive notifications
+
+### 🎓 Club Admin
+- All student permissions
+- Create and manage club profile
+- Create, edit, and delete club events
+- Moderate comments on club events
+- View club member list and analytics
+- Manage club settings and information
+
+### 👑 Super Admin
+- All club admin permissions
+- Approve or reject new club registrations
+- Access admin dashboard with pending clubs queue
+- Moderate any content across the platform
+- View comprehensive audit logs
+- Promote users to super admin role
+- Platform-wide moderation capabilities
+
+## Getting Started
 
 ### Prerequisites
-- **Node.js**: v18 or higher
-- **MongoDB**: v6 or higher (local or Atlas)
-- **npm** or **yarn**: Package manager
 
-### Clone the Repository
+Before you begin, ensure you have the following installed:
+
+- **Node.js**: v18 or higher ([Download](https://nodejs.org/))
+- **MongoDB**: v6 or higher ([Download](https://www.mongodb.com/try/download/community) or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+- **npm** or **yarn**: Package manager (comes with Node.js)
+- **AWS Account**: For S3 storage (optional for local development)
+- **Redis**: For caching (optional, enhances performance)
+
+### Quick Start
+
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/yourusername/uninexus.git
 cd uninexus
 ```
 
-### Backend Setup
+#### 2. Backend Setup
 
-1. Navigate to the backend directory:
+Navigate to the backend directory and install dependencies:
 ```bash
 cd backend
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Create a `.env` file in the `backend` directory:
+Create a `.env` file in the `backend` directory (copy from `.env.example`):
 ```env
+# Server Configuration
 PORT=3000
-MONGO_URI=YOUR_MONGO_DB_URI_HERE
-JWT_SECRET=your_jwt_secret_key_here
 NODE_ENV=development
 
-# AWS S3 Configuration
+# Database
+MONGODB_URI=mongodb://localhost:27017/uninexus
+# Or use MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/uninexus
+
+# Authentication
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+JWT_EXPIRES_IN=24h
+BCRYPT_SALT_ROUNDS=12
+
+# AWS S3 Configuration (for media uploads)
 AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 AWS_REGION=us-east-1
 AWS_BUCKET_NAME=uninexus-media
 
-# AI Services
-OPENAI_API_KEY=your_openai_api_key
-
-# Optional: Redis for caching
+# Redis (Optional - for caching)
 REDIS_URL=redis://localhost:6379
+
+# Email (Optional - for notifications)
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
 ```
 
-4. Start the development server:
+Start the backend development server:
 ```bash
 npm run dev
 ```
 
-The backend will run on `http://localhost:3000`
+The backend API will run on `http://localhost:3000`
 
-### Frontend Setup
-
-1. Navigate to the frontend directory:
+**Useful Backend Commands:**
 ```bash
-cd frontend
+npm test              # Run all tests
+npm run test:coverage # Run tests with coverage report
+npm run test:pbt      # Run property-based tests only
+npm run seed          # Seed database with sample data
+npm run script:setSuperAdmin  # Promote a user to super admin
 ```
 
-2. Install dependencies:
+#### 3. Frontend Setup
+
+Open a new terminal, navigate to the frontend directory, and install dependencies:
 ```bash
+cd frontend
 npm install
 ```
 
-3. Create a `.env` file in the `frontend` directory:
+Create a `.env` file in the `frontend` directory:
 ```env
 VITE_API_URL=http://localhost:3000
 ```
 
-4. Start the development server:
+Start the frontend development server:
 ```bash
 npm run dev
 ```
 
 The frontend will run on `http://localhost:5173`
 
-### Running Both Servers
+**Useful Frontend Commands:**
+```bash
+npm test          # Run tests in watch mode
+npm run test:run  # Run tests once
+npm run test:ui   # Open Vitest UI
+npm run build     # Build for production
+npm run preview   # Preview production build
+```
 
-You can run both servers simultaneously using separate terminal windows:
+#### 4. Access the Application
+
+Open your browser and navigate to:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:3000
+
+#### 5. Create Your First Super Admin
+
+After starting the backend, create a super admin user:
+
+```bash
+cd backend
+npm run script:setSuperAdmin
+# Follow the prompts to enter user email
+```
+
+Or manually in MongoDB:
+```javascript
+db.users.updateOne(
+  { email: "your_email@example.com" },
+  { $set: { isSuperAdmin: true } }
+)
+```
+
+### Running Both Servers Concurrently
+
+For convenience, you can run both servers in separate terminal windows:
 
 **Terminal 1 (Backend):**
 ```bash
@@ -178,40 +355,233 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-## 7. Project Structure
+### Docker Setup (Optional)
+
+Coming soon: Docker Compose configuration for one-command setup.
+
+## Project Structure
 
 ```
 uninexus/
-├── backend/
+├── backend/                    # Express.js TypeScript backend
 │   ├── src/
-│   │   ├── config/         # Configuration files
-│   │   ├── controllers/    # Route controllers
-│   │   ├── middlewares/    # Custom middleware (auth, validation)
-│   │   ├── models/         # Mongoose models
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # Business logic
-│   │   ├── utils/          # Helper functions
-│   │   └── server.ts       # Entry point
-│   ├── .env
-│   └── package.json
-├── frontend/
+│   │   ├── config/            # Configuration files (DB, Redis, S3)
+│   │   ├── controllers/       # Route controllers (business logic)
+│   │   ├── middlewares/       # Custom middleware (auth, validation, upload)
+│   │   ├── models/            # Mongoose models (User, Event, Comment, etc.)
+│   │   ├── routes/            # API route definitions
+│   │   ├── services/          # Business logic services (auth, media, cache)
+│   │   ├── types/             # TypeScript type definitions
+│   │   ├── utils/             # Helper functions and utilities
+│   │   ├── validation/        # Zod validation schemas
+│   │   ├── scripts/           # Utility scripts (seed, migrations)
+│   │   └── server.ts          # Application entry point
+│   ├── tests/                 # Test files
+│   │   ├── generators/        # Property-based test generators
+│   │   ├── setup.ts           # Test configuration
+│   │   └── *.test.ts          # Test files
+│   ├── coverage/              # Test coverage reports (generated)
+│   ├── dist/                  # Compiled JavaScript (generated)
+│   ├── .env                   # Environment variables (create from .env.example)
+│   ├── .env.example           # Environment template
+│   ├── .env.test              # Test environment variables
+│   ├── jest.config.js         # Jest configuration
+│   ├── tsconfig.json          # TypeScript configuration
+│   └── package.json           # Dependencies and scripts
+│
+├── frontend/                   # React JavaScript frontend
 │   ├── src/
-│   │   ├── api/            # API client functions
-│   │   ├── assets/         # Static assets
-│   │   ├── components/     # React components
-│   │   ├── context/        # React context providers
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── pages/          # Page components
-│   │   ├── types/          # TypeScript types
-│   │   ├── utils/          # Helper functions
-│   │   ├── App.tsx         # Main app component
-│   │   └── main.tsx        # Entry point
-│   ├── .env
-│   └── package.json
-└── README.md
+│   │   ├── api/               # API client functions (Axios)
+│   │   ├── assets/            # Static assets (images, icons)
+│   │   ├── components/        # React components
+│   │   │   ├── common/        # Reusable UI components (Button, Input, Modal)
+│   │   │   ├── layout/        # Layout components (Navbar, Sidebar, Footer)
+│   │   │   └── specific/      # Feature-specific components (CommentThread, VoteButtons)
+│   │   ├── context/           # React context providers (Auth, Theme, Sidebar)
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── pages/             # Page components (Home, Events, EventDetails, etc.)
+│   │   ├── services/          # API service layer
+│   │   ├── types/             # TypeScript/JSDoc type definitions
+│   │   ├── utils/             # Helper functions
+│   │   ├── __tests__/         # Test files
+│   │   ├── App.jsx            # Main app component
+│   │   ├── main.jsx           # Application entry point
+│   │   └── index.css          # Global styles
+│   ├── public/                # Public static files
+│   ├── .env                   # Environment variables (create from template)
+│   ├── vite.config.js         # Vite configuration
+│   ├── tailwind.config.js     # Tailwind CSS configuration
+│   ├── vitest.config.js       # Vitest configuration
+│   └── package.json           # Dependencies and scripts
+│
+├── .kiro/                      # Kiro AI specs and configuration
+│   └── specs/                 # Feature specifications
+│       └── phase-4-community-foundation/
+│           ├── requirements.md # Feature requirements
+│           ├── design.md      # Technical design
+│           └── tasks.md       # Implementation tasks
+│
+├── .git/                       # Git repository
+├── .gitignore                 # Git ignore rules
+├── README.md                  # This file
+└── FEATURE_GAP_ANALYSIS.md    # Feature planning document
 ```
 
-## 8. Contributing
+### Key Directories Explained
+
+**Backend (`backend/src/`):**
+- `controllers/`: Handle HTTP requests, call services, return responses
+- `models/`: MongoDB schemas with Mongoose (User, Event, Comment, ClubProfile, etc.)
+- `middlewares/`: Authentication, authorization, file upload, error handling
+- `services/`: Reusable business logic (auth, caching, media processing)
+- `validation/`: Zod schemas for request validation
+- `routes/`: Express route definitions mapping URLs to controllers
+
+**Frontend (`frontend/src/`):**
+- `pages/`: Top-level route components (Home, Events, EventDetails, AdminDashboard)
+- `components/common/`: Reusable UI (Button, Input, Card, Modal, LoadingSpinner)
+- `components/specific/`: Feature components (CommentThread, CommentItem, VoteButtons)
+- `context/`: Global state management (AuthContext, ThemeContext, SidebarContext)
+- `services/`: API client with Axios interceptors and error handling
+
+## API Documentation
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Authentication
+Most endpoints require JWT authentication. Include the token in the Authorization header:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+### Core Endpoints
+
+#### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login and receive JWT token
+- `GET /api/auth/me` - Get current user profile
+- `PUT /api/auth/profile` - Update user profile
+
+#### Events
+- `GET /api/events` - Get all events (with filters)
+- `GET /api/events/:id` - Get event details
+- `POST /api/events` - Create event (Club Admin only)
+- `PUT /api/events/:id` - Update event (Club Admin only)
+- `DELETE /api/events/:id` - Delete event (Club Admin only)
+- `POST /api/events/:id/rsvp` - RSVP to event
+
+#### Clubs
+- `GET /api/clubs` - Get all approved clubs
+- `GET /api/clubs/:id` - Get club details
+- `POST /api/clubs` - Create club (creates pending club)
+- `PUT /api/clubs/:id` - Update club (Club Admin only)
+- `GET /api/clubs/:id/members` - Get club members
+
+#### Comments
+- `GET /api/comments/event/:eventId` - Get all comments for event
+- `POST /api/comments` - Create comment
+- `PUT /api/comments/:id` - Update comment (Author only)
+- `DELETE /api/comments/:id` - Delete comment (Author/Moderator)
+- `POST /api/comments/:id/vote` - Vote on comment
+
+#### Admin (Super Admin only)
+- `GET /api/admin/clubs/pending` - Get pending club registrations
+- `POST /api/admin/clubs/:id/approve` - Approve club
+- `POST /api/admin/clubs/:id/reject` - Reject club with reason
+
+#### Notifications
+- `GET /api/notifications` - Get user notifications
+- `PUT /api/notifications/:id/read` - Mark notification as read
+- `PUT /api/notifications/read-all` - Mark all as read
+
+#### Messages
+- `GET /api/messages/conversations` - Get user conversations
+- `GET /api/messages/:conversationId` - Get messages in conversation
+- `POST /api/messages` - Send message
+
+#### Discover & Trending
+- `GET /api/discover` - Get personalized event recommendations
+- `GET /api/trending` - Get trending events
+
+For detailed API documentation with request/response examples, see the [Backend README](backend/README.md).
+
+---
+
+## Testing
+
+UniNexus uses a comprehensive testing strategy with both traditional and property-based testing.
+
+### Backend Testing
+
+**Test Framework**: Jest with TypeScript support
+
+**Test Types:**
+1. **Unit Tests**: Test individual functions and methods
+2. **Integration Tests**: Test API endpoints with real database
+3. **Property-Based Tests**: Test universal correctness properties with fast-check
+
+**Run Tests:**
+```bash
+cd backend
+
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run only property-based tests
+npm run test:pbt
+
+# Run only unit tests
+npm run test:unit
+
+# Watch mode
+npm run test:watch
+```
+
+**Property-Based Testing Examples:**
+- Comment hierarchy integrity (materialized path validation)
+- Vote uniqueness (user can't upvote and downvote simultaneously)
+- Vote count accuracy (voteCount = upvotes.length - downvotes.length)
+- Authorization enforcement (only author/moderator can delete)
+- Admin role verification (only super admins access admin endpoints)
+
+### Frontend Testing
+
+**Test Framework**: Vitest with React Testing Library
+
+**Run Tests:**
+```bash
+cd frontend
+
+# Run tests in watch mode
+npm test
+
+# Run tests once
+npm run test:run
+
+# Open Vitest UI
+npm run test:ui
+```
+
+**Test Coverage:**
+- Component rendering and interactions
+- User event handling
+- API integration with mocked responses
+- Context providers and hooks
+- Form validation and submission
+
+### Test Database
+
+Backend tests use **MongoDB Memory Server** for isolated, in-memory testing without affecting your development database.
+
+---
+
+## Contributing
 
 We welcome contributions! Here's how you can help:
 
@@ -274,8 +644,10 @@ Follow conventional commits format:
 - **Comment System**: Threaded comments with materialized path pattern
 - **UI Components**: Reusable React components with Tailwind CSS
 - **AI Integration**: OpenAI embeddings, semantic search, thread summarization
-- **Testing**: Unit tests, integration tests, API testing
+- **Testing**: Unit tests, integration tests, property-based tests
 - **Documentation**: API docs, component docs, setup tutorials
+- **Performance**: Caching strategies, query optimization, lazy loading
+- **Accessibility**: WCAG compliance, keyboard navigation, screen reader support
 
 ### Questions or Issues?
 
@@ -283,6 +655,126 @@ Follow conventional commits format:
 - Join discussions in existing issues
 - Reach out to maintainers for guidance
 
-## 9. License
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Backend won't start:**
+- Verify MongoDB is running: `mongod --version`
+- Check `.env` file exists with correct `MONGODB_URI`
+- Ensure port 3000 is not in use: `lsof -i :3000` (Mac/Linux) or `netstat -ano | findstr :3000` (Windows)
+
+**Frontend won't start:**
+- Verify Node.js version: `node --version` (should be v18+)
+- Delete `node_modules` and reinstall: `rm -rf node_modules && npm install`
+- Check `.env` file has correct `VITE_API_URL`
+
+**Database connection errors:**
+- For local MongoDB: Ensure MongoDB service is running
+- For MongoDB Atlas: Check IP whitelist and connection string
+- Verify network connectivity
+
+**AWS S3 upload errors:**
+- Verify AWS credentials in `.env`
+- Check S3 bucket exists and has correct permissions
+- Ensure IAM user has `s3:PutObject` permission
+
+**Tests failing:**
+- Run `npm test` in backend to see detailed errors
+- Ensure test database is clean (tests use MongoDB Memory Server)
+- Check for port conflicts if integration tests fail
+
+### Getting Help
+
+- Check existing [GitHub Issues](https://github.com/yourusername/uninexus/issues)
+- Review [Backend README](backend/README.md) for detailed backend docs
+- Join our community discussions
+- Contact maintainers for urgent issues
+
+---
+
+## Roadmap
+
+### Phase 1: Foundation ✅ (Completed)
+- User authentication and authorization
+- Basic event CRUD operations
+- Club profile management
+- File uploads to AWS S3
+
+### Phase 2: Events Engine ✅ (Completed)
+- Advanced event filtering and search
+- RSVP system with capacity tracking
+- Event notifications
+- Trending algorithm
+
+### Phase 3: User Experience ✅ (Completed)
+- Responsive design with Tailwind CSS
+- Dark/light theme toggle
+- Notification center
+- Direct messaging system
+- Settings and preferences
+
+### Phase 4: Community Foundation ✅ (Completed)
+- Threaded comments with materialized path
+- Voting system (upvote/downvote)
+- Comment sorting algorithms
+- Admin approval workflow for clubs
+- Audit logging
+
+### Phase 5: Performance & Scale 🚧 (In Progress)
+- Redis caching for comment counts
+- Lazy loading for deep comment threads
+- Cursor-based pagination
+- Database query optimization
+- Performance testing
+
+### Phase 6: AI Integration 📋 (Planned)
+- Semantic search with vector embeddings
+- Thread summarization with LLMs
+- Smart event recommendations
+- Duplicate detection
+- Poster-to-event OCR extraction
+
+### Phase 7: Real-time Features 📋 (Planned)
+- WebSocket integration for live updates
+- Real-time comment notifications
+- Live event updates
+- Online user presence
+
+### Phase 8: Mobile & PWA 📋 (Planned)
+- Progressive Web App (PWA) support
+- Native mobile apps (React Native)
+- Push notifications
+- Offline support
+
+---
+
+## Performance Considerations
+
+- **Database Indexing**: Compound indexes on frequently queried fields
+- **Caching**: Redis for comment counts, trending events, and user sessions
+- **Lazy Loading**: Deep comment threads load on demand
+- **Image Optimization**: Sharp for image compression before S3 upload
+- **Pagination**: Cursor-based pagination for large datasets
+- **CDN**: AWS CloudFront for static asset delivery (production)
+
+---
+
+## Security Best Practices
+
+- **Authentication**: JWT with secure secret keys and expiration
+- **Password Hashing**: bcrypt with 12 salt rounds
+- **Input Validation**: Zod schemas for all API inputs
+- **XSS Prevention**: Sanitize user-generated content
+- **CSRF Protection**: CSRF tokens for state-changing operations
+- **Rate Limiting**: Prevent abuse with request rate limits
+- **Audit Logging**: Track all admin and moderation actions
+- **Environment Variables**: Never commit `.env` files to version control
+
+---
+
+## License
 
 This project is licensed under the ISC License.
