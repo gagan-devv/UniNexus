@@ -775,6 +775,130 @@ Follow conventional commits format:
 
 ---
 
+## Feature Comparison: Planned vs Implemented
+
+### Summary Statistics
+
+| Category | Total Features | Implemented | In Progress | Planned | Completion % |
+|----------|---------------|-------------|-------------|---------|--------------|
+| Authentication & User Management | 6 | 5 | 0 | 1 | 83% |
+| Events Engine | 7 | 5 | 0 | 2 | 71% |
+| Community & Social | 8 | 4 | 0 | 4 | 50% |
+| Notifications & Messaging | 5 | 5 | 0 | 0 | 100% |
+| User Experience | 7 | 7 | 0 | 0 | 100% |
+| AI Integration | 4 | 0 | 0 | 4 | 0% |
+| Real-time Features | 4 | 0 | 0 | 4 | 0% |
+| Mobile & PWA | 3 | 0 | 0 | 3 | 0% |
+| **TOTAL** | **44** | **26** | **0** | **18** | **59%** |
+
+### Detailed Feature Breakdown
+
+#### 🔐 Authentication & User Management
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| JWT-based Authentication | ✅ Implemented | bcrypt password hashing, secure token management |
+| User Profiles | ✅ Implemented | Avatars, bio, customizable profiles |
+| Club Profiles | ✅ Implemented | Logos, descriptions, social links, S3 integration |
+| Role-Based Access Control | ✅ Implemented | Student, Club Admin, Super Admin roles |
+| Admin Dashboard | ✅ Implemented | Club approval/rejection workflow, audit logs |
+| Settings Management | ✅ Implemented | User preferences, notification settings |
+| User Flairs | 📋 Planned | Tags like "CS '26", "Engineering" |
+
+#### 📅 Events Engine
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Unified Event Feed | ✅ Implemented | Chronological feed with filtering |
+| Event CRUD Operations | ✅ Implemented | Create, read, update, delete with authorization |
+| Rich Event Details | ✅ Implemented | Images, descriptions, venue, date/time, capacity |
+| RSVP System | ✅ Implemented | Interest tracking, capacity management |
+| Event Discovery | ✅ Implemented | Search and filter by date, category, club |
+| Trending Events | ✅ Implemented | Algorithm-based trending page |
+| Event Notifications | ✅ Implemented | RSVP confirmations, updates, reminders |
+| Semantic Search | 📋 Planned | AI-powered search with vector embeddings |
+| Calendar Integration | 📋 Planned | Export to Google Calendar, iCal |
+| Poster-to-Event OCR | 📋 Planned | Extract event details from poster images |
+
+#### 💬 Community & Social
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Threaded Comments | ✅ Implemented | Infinite-depth nesting with materialized path |
+| Voting System | ✅ Implemented | Upvote/downvote with atomic operations |
+| Comment Sorting | ✅ Implemented | Hot, Top, New, Controversial algorithms |
+| Comment Moderation | ✅ Implemented | Event organizers can moderate discussions |
+| Soft Deletes | ✅ Implemented | Preserve thread structure |
+| Collapse/Expand Threads | ✅ Implemented | Collapsible comment navigation |
+| Edit History | ✅ Implemented | Track comment edits with timestamps |
+| Direct Messaging | ✅ Implemented | One-on-one conversations |
+| Rich Text Editor | 📋 Planned | Markdown support with code blocks |
+| Real-time Comment Updates | 📋 Planned | WebSocket-based live updates |
+| Anonymous Mode | 📋 Planned | Confession-style posts |
+| Thread Reactions | 📋 Planned | Emoji reactions beyond voting |
+
+#### 🔔 Notifications & Messaging
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Notification Center | ✅ Implemented | Centralized hub for all notifications |
+| Direct Messaging | ✅ Implemented | One-on-one conversations |
+| Notification Types | ✅ Implemented | Events, RSVPs, comments, approvals, moderation |
+| Read/Unread Tracking | ✅ Implemented | Badge counts and status management |
+| Audit Logging | ✅ Implemented | Complete audit trail for admin actions |
+
+#### 🎨 User Experience
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Responsive Design | ✅ Implemented | Mobile-first with Tailwind CSS |
+| Dark/Light Theme | ✅ Implemented | User-selectable with persistent preferences |
+| Sidebar Navigation | ✅ Implemented | Collapsible with quick access |
+| Loading States | ✅ Implemented | Skeleton screens and indicators |
+| Error Handling | ✅ Implemented | User-friendly error messages |
+| Accessibility | ✅ Implemented | WCAG 2.1 AA compliance efforts |
+| Performance Optimization | ✅ Implemented | Optimized rendering with React best practices |
+
+#### 🤖 AI Integration (Planned)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Semantic Search | 📋 Planned | Vector embeddings with Pinecone/OpenAI |
+| Thread Summarization | 📋 Planned | AI-generated summaries of discussions |
+| Smart Recommendations | 📋 Planned | Personalized event suggestions |
+| Duplicate Detection | 📋 Planned | Identify duplicate events |
+
+#### ⚡ Real-time Features (Planned)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| WebSocket Integration | 📋 Planned | Live updates for comments and notifications |
+| Real-time Comment Notifications | 📋 Planned | Instant notification delivery |
+| Live Event Updates | 📋 Planned | Real-time event changes |
+| Online User Presence | 📋 Planned | Show who's online |
+
+#### 📱 Mobile & PWA (Planned)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Progressive Web App | 📋 Planned | PWA support with offline capabilities |
+| Native Mobile Apps | 📋 Planned | React Native iOS and Android |
+| Push Notifications | 📋 Planned | Mobile push notifications |
+
+### Implementation Highlights
+
+**What Makes UniNexus Special:**
+
+1. **Materialized Path Pattern**: Efficient hierarchical comment storage enabling O(1) fetching of entire discussion trees
+2. **Atomic Voting Operations**: Race-condition-free voting using MongoDB atomic operators
+3. **Property-Based Testing**: Comprehensive test coverage with fast-check for universal correctness validation
+4. **Club Approval Workflow**: Quality control system ensuring legitimate clubs before going live
+5. **Presigned URLs**: Secure, direct-to-S3 uploads without exposing credentials
+6. **Redis Caching**: Performance optimization for frequently accessed data
+7. **Comprehensive Audit Logging**: Complete trail of admin and moderation actions
+
+---
+
 ## License
 
 This project is licensed under the ISC License.

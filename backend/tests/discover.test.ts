@@ -50,14 +50,15 @@ describe('Discover API Property Tests', () => {
         it('should return results matching the search query in events or clubs', async () => {
             await fc.assert(
                 fc.asyncProperty(
-                    fc.string({ minLength: 3, maxLength: 20 }).filter(s => /^[a-zA-Z0-9\s]+$/.test(s)),
+                    fc.string({ minLength: 3, maxLength: 20 }).filter(s => /^[a-zA-Z0-9\s]+$/.test(s) && s.trim().length > 0),
                     async (searchTerm) => {
                         // Create test club
+                        const emailPrefix = searchTerm.toLowerCase().replace(/\s/g, '') || 'test';
                         const club = await ClubProfile.create({
                             user: testUser._id,
                             name: `${searchTerm} Club`,
                             description: `A club about ${searchTerm}`,
-                            email: `${searchTerm.toLowerCase().replace(/\s/g, '')}@club.com`
+                            email: `${emailPrefix}@club.com`
                         });
 
                         // Create test event
