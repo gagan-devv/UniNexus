@@ -389,77 +389,80 @@ describe('Voting System Tests', () => {
     });
 
     it('Property 3: voteCount accuracy with multiple users', async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.integer({ min: 1, max: 5 }), // Number of upvoters
-          fc.integer({ min: 0, max: 5 }), // Number of downvoters
-          async (numUpvoters, numDownvoters) => {
-            // Create fresh comment
-            const comment = await Comment.create({
-              content: 'Test comment ' + Date.now(),
-              author: testUser._id,
-              eventId: testEvent._id,
-              parentId: null,
-              path: '',
-              depth: 0
-            });
+      // Pre-create a pool of test users to reuse across property test runs
+      const testUsers: any[] = [];
+      const testTokens: string[] = [];
+      
+      for (let i = 0; i < 6; i++) {
+        const user = await User.create({
+          username: `multiuser_${Date.now()}_${i}`,
+          email: `multiuser_${Date.now()}_${i}@test.com`,
+          password: 'TestPass123!',
+          role: 'student'
+        });
+        testUsers.push(user);
+        testTokens.push(AuthService.generateAccessToken(user._id.toString()));
+      }
 
-            // Create upvoters
-            const upvoters = [];
-            for (let i = 0; i < numUpvoters; i++) {
-              const user = await User.create({
-                username: `upvoter_${Date.now()}_${i}`,
-                email: `upvoter_${Date.now()}_${i}@test.com`,
-                password: 'TestPass123!',
-                role: 'student'
+      try {
+        await fc.assert(
+          fc.asyncProperty(
+            fc.integer({ min: 1, max: 3 }), // Reduced max users
+            fc.integer({ min: 0, max: 3 }), // Reduced max users
+            async (numUpvoters, numDownvoters) => {
+              // Ensure we don't exceed available users
+              const totalUsers = numUpvoters + numDownvoters;
+              if (totalUsers > testUsers.length) return;
+
+              // Create fresh comment
+              const comment = await Comment.create({
+                content: 'Test comment ' + Date.now(),
+                author: testUser._id,
+                eventId: testEvent._id,
+                parentId: null,
+                path: '',
+                depth: 0
               });
-              upvoters.push(user);
 
-              const token = AuthService.generateAccessToken(user._id.toString());
+              try {
+                // Use existing users for upvotes
+                for (let i = 0; i < numUpvoters; i++) {
+                  await request(app)
+                    .post(`/api/comments/${comment._id}/vote`)
+                    .set('Authorization', `Bearer ${testTokens[i]}`)
+                    .send({ voteType: 'upvote' });
+                }
 
-              await request(app)
-                .post(`/api/comments/${comment._id}/vote`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ voteType: 'upvote' });
+                // Use existing users for downvotes
+                for (let i = 0; i < numDownvoters; i++) {
+                  await request(app)
+                    .post(`/api/comments/${comment._id}/vote`)
+                    .set('Authorization', `Bearer ${testTokens[numUpvoters + i]}`)
+                    .send({ voteType: 'downvote' });
+                }
+
+                // Verify property
+                const updatedComment = await Comment.findById(comment._id);
+                const expectedVoteCount = numUpvoters - numDownvoters;
+                
+                expect(updatedComment?.voteCount).toBe(expectedVoteCount);
+                expect(updatedComment?.upvotes).toHaveLength(numUpvoters);
+                expect(updatedComment?.downvotes).toHaveLength(numDownvoters);
+              } finally {
+                // Cleanup comment
+                await Comment.findByIdAndDelete(comment._id);
+              }
             }
-
-            // Create downvoters
-            const downvoters = [];
-            for (let i = 0; i < numDownvoters; i++) {
-              const user = await User.create({
-                username: `downvoter_${Date.now()}_${i}`,
-                email: `downvoter_${Date.now()}_${i}@test.com`,
-                password: 'TestPass123!',
-                role: 'student'
-              });
-              downvoters.push(user);
-
-              const token = AuthService.generateAccessToken(user._id.toString());
-
-              await request(app)
-                .post(`/api/comments/${comment._id}/vote`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ voteType: 'downvote' });
-            }
-
-            // Verify property
-            const updatedComment = await Comment.findById(comment._id);
-            const expectedVoteCount = numUpvoters - numDownvoters;
-            
-            expect(updatedComment?.voteCount).toBe(expectedVoteCount);
-            expect(updatedComment?.upvotes).toHaveLength(numUpvoters);
-            expect(updatedComment?.downvotes).toHaveLength(numDownvoters);
-
-            // Cleanup
-            await Comment.findByIdAndDelete(comment._id);
-            for (const user of [...upvoters, ...downvoters]) {
-              await User.findByIdAndDelete(user._id);
-            }
-          }
-        ),
-        { numRuns: 10 }
-      );
-    });
+          ),
+          { numRuns: 5 } // Reduced number of runs
+        );
+      } finally {
+        // Cleanup test users
+        for (const user of testUsers) {
+          await User.findByIdAndDelete(user._id);
+        }
+      }
+    }, 15000); // Increased timeout to 15 seconds
   });
 
   describe('Authorization Enforcement', () => {

@@ -3,6 +3,8 @@ import { User } from '../models/User';
 import { ClubProfile } from '../models/ClubProfile';
 import { Event } from '../models/Event';
 import { RSVP } from '../models/RSVP';
+import { Comment } from '../models/Comment';
+import { Notification } from '../models/Notification';
 import { connectDB } from '../config/db';
 import { logger } from '../utils/logger';
 import dotenv from 'dotenv';
@@ -202,14 +204,22 @@ const sampleClubs = [
 ];
 
 // Sample event data (will be created after clubs)
+// Helper function to get future dates
+const getFutureDate = (daysFromNow: number, hour: number = 9, minute: number = 0): Date => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+};
+
 const sampleEvents = [
   {
     title: 'HackUni 2026 - 48 Hour Hackathon',
     description: 'Join us for the biggest hackathon of the year! Build innovative solutions, win prizes worth $10,000, and network with industry professionals. Free food, swag, and workshops included. Teams of 1-4 members welcome.',
     location: 'Engineering Building, Main Hall',
     category: 'Tech',
-    startTime: new Date('2026-03-15T09:00:00Z'),
-    endTime: new Date('2026-03-17T17:00:00Z'),
+    startTime: getFutureDate(15, 9, 0), // 15 days from now, 9 AM
+    endTime: getFutureDate(17, 17, 0), // 17 days from now, 5 PM
     maxAttendees: 200,
     tags: ['hackathon', 'coding', 'innovation', 'prizes'],
     isPublic: true
@@ -219,8 +229,8 @@ const sampleEvents = [
     description: 'Present your startup idea to a panel of investors and entrepreneurs. Top 3 teams win seed funding and mentorship. Open to all students with innovative business ideas.',
     location: 'Business School Auditorium',
     category: 'Workshop',
-    startTime: new Date('2026-02-20T14:00:00Z'),
-    endTime: new Date('2026-02-20T18:00:00Z'),
+    startTime: getFutureDate(7, 14, 0), // 7 days from now, 2 PM
+    endTime: getFutureDate(7, 18, 0), // Same day, 6 PM
     maxAttendees: 100,
     tags: ['startup', 'entrepreneurship', 'pitch', 'funding'],
     isPublic: true
@@ -230,8 +240,8 @@ const sampleEvents = [
     description: 'Watch our robotics team compete against universities from across the region. Autonomous robots will battle in soccer, rescue, and maze challenges. Free entry for students!',
     location: 'Sports Complex Arena',
     category: 'Sports',
-    startTime: new Date('2026-04-10T10:00:00Z'),
-    endTime: new Date('2026-04-10T16:00:00Z'),
+    startTime: getFutureDate(25, 10, 0), // 25 days from now, 10 AM
+    endTime: getFutureDate(25, 16, 0), // Same day, 4 PM
     maxAttendees: 500,
     tags: ['robotics', 'competition', 'engineering', 'autonomous'],
     isPublic: true
@@ -241,8 +251,8 @@ const sampleEvents = [
     description: 'Join us for a week dedicated to mental health awareness. This kickoff event features guest speakers, wellness activities, and resource fair. Learn about campus mental health services.',
     location: 'Student Center Plaza',
     category: 'Seminar',
-    startTime: new Date('2026-03-01T12:00:00Z'),
-    endTime: new Date('2026-03-01T15:00:00Z'),
+    startTime: getFutureDate(10, 12, 0), // 10 days from now, 12 PM
+    endTime: getFutureDate(10, 15, 0), // Same day, 3 PM
     maxAttendees: 300,
     tags: ['mental-health', 'wellness', 'awareness', 'support'],
     isPublic: true
@@ -252,8 +262,8 @@ const sampleEvents = [
     description: 'Learn about renewable energy technologies and sustainable engineering practices. Hands-on workshop covering solar panels, wind turbines, and energy storage systems.',
     location: 'Engineering Lab 204',
     category: 'Workshop',
-    startTime: new Date('2026-02-25T15:00:00Z'),
-    endTime: new Date('2026-02-25T18:00:00Z'),
+    startTime: getFutureDate(5, 15, 0), // 5 days from now, 3 PM
+    endTime: getFutureDate(5, 18, 0), // Same day, 6 PM
     maxAttendees: 50,
     tags: ['sustainability', 'renewable-energy', 'workshop', 'engineering'],
     isPublic: true
@@ -263,8 +273,8 @@ const sampleEvents = [
     description: 'Compete in our internal Kaggle-style data science competition. Analyze real-world datasets, build predictive models, and win prizes. All skill levels welcome!',
     location: 'Computer Science Building, Room 301',
     category: 'Tech',
-    startTime: new Date('2026-03-08T13:00:00Z'),
-    endTime: new Date('2026-03-08T17:00:00Z'),
+    startTime: getFutureDate(12, 13, 0), // 12 days from now, 1 PM
+    endTime: getFutureDate(12, 17, 0), // Same day, 5 PM
     maxAttendees: 80,
     tags: ['data-science', 'machine-learning', 'kaggle', 'competition'],
     isPublic: true
@@ -274,8 +284,8 @@ const sampleEvents = [
     description: 'Help us make our campus greener! Join the environmental action group for a campus-wide cleanup. Gloves, bags, and refreshments provided. Community service hours available.',
     location: 'Meet at Student Center',
     category: 'Other',
-    startTime: new Date('2026-02-28T09:00:00Z'),
-    endTime: new Date('2026-02-28T13:00:00Z'),
+    startTime: getFutureDate(3, 9, 0), // 3 days from now, 9 AM
+    endTime: getFutureDate(3, 13, 0), // Same day, 1 PM
     maxAttendees: 150,
     tags: ['environment', 'cleanup', 'volunteer', 'community-service'],
     isPublic: true
@@ -285,8 +295,8 @@ const sampleEvents = [
     description: 'Comprehensive MCAT preparation workshop covering all sections. Led by students who scored in the 95th percentile. Includes practice questions and test-taking strategies.',
     location: 'Library Conference Room A',
     category: 'Seminar',
-    startTime: new Date('2026-03-05T18:00:00Z'),
-    endTime: new Date('2026-03-05T20:00:00Z'),
+    startTime: getFutureDate(8, 18, 0), // 8 days from now, 6 PM
+    endTime: getFutureDate(8, 20, 0), // Same day, 8 PM
     maxAttendees: 60,
     tags: ['mcat', 'pre-med', 'test-prep', 'medical-school'],
     isPublic: true
@@ -296,8 +306,8 @@ const sampleEvents = [
     description: 'Full-day summit featuring talks from AI researchers and industry leaders. Topics include deep learning, NLP, computer vision, and ethical AI. Networking lunch included.',
     location: 'University Conference Center',
     category: 'Seminar',
-    startTime: new Date('2026-04-20T09:00:00Z'),
-    endTime: new Date('2026-04-20T17:00:00Z'),
+    startTime: getFutureDate(30, 9, 0), // 30 days from now, 9 AM
+    endTime: getFutureDate(30, 17, 0), // Same day, 5 PM
     maxAttendees: 250,
     tags: ['ai', 'machine-learning', 'deep-learning', 'summit'],
     isPublic: true
@@ -307,8 +317,8 @@ const sampleEvents = [
     description: 'Intimate conversation with successful startup founders. Learn about their journey, challenges, and advice for aspiring entrepreneurs. Q&A session included.',
     location: 'Innovation Hub',
     category: 'Seminar',
-    startTime: new Date('2026-03-12T17:00:00Z'),
-    endTime: new Date('2026-03-12T19:00:00Z'),
+    startTime: getFutureDate(18, 17, 0), // 18 days from now, 5 PM
+    endTime: getFutureDate(18, 19, 0), // Same day, 7 PM
     maxAttendees: 75,
     tags: ['entrepreneurship', 'startup', 'founder', 'networking'],
     isPublic: true
@@ -322,56 +332,113 @@ async function seedDatabase() {
     // Connect to database
     await connectDB();
 
-    // Clear existing data
-    logger.info('🗑️  Clearing existing data...');
-    await User.deleteMany({});
-    await ClubProfile.deleteMany({});
-    await Event.deleteMany({});
-    await RSVP.deleteMany({});
+    // DO NOT clear existing data - only add/update
+    logger.info('📊 Checking existing data...');
+    const existingUserCount = await User.countDocuments();
+    const existingClubCount = await ClubProfile.countDocuments();
+    const existingEventCount = await Event.countDocuments();
+    logger.info(`   Existing Users: ${existingUserCount}`);
+    logger.info(`   Existing Clubs: ${existingClubCount}`);
+    logger.info(`   Existing Events: ${existingEventCount}`);
 
-    // Create users
-    logger.info('👥 Creating users...');
-    const createdUsers = await User.create(sampleUsers);
-    logger.info(`✅ Created ${createdUsers.length} users`);
+    // Create or update users (skip if email exists)
+    logger.info('\n👥 Creating/updating users...');
+    const createdUsers = [];
+    for (const userData of sampleUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+      if (existingUser) {
+        logger.info(`   ⏭️  User ${userData.email} already exists, skipping...`);
+        createdUsers.push(existingUser);
+      } else {
+        const newUser = await User.create(userData);
+        logger.info(`   ✅ Created user: ${userData.email}`);
+        createdUsers.push(newUser);
+      }
+    }
+    logger.info(`✅ Processed ${createdUsers.length} users`);
 
-    // Create clubs (assign to users)
-    logger.info('🏢 Creating clubs...');
+    // Create or update clubs (skip if club with same name exists)
+    logger.info('\n🏢 Creating/updating clubs...');
     const createdClubs = [];
+    let updatedClubCount = 0;
+    
     for (let i = 0; i < sampleClubs.length; i++) {
+      const clubData = sampleClubs[i];
+      if (!clubData) continue;
+      
       const user = createdUsers[i];
       if (!user) continue;
       
-      const clubData = {
-        ...sampleClubs[i],
-        user: user._id,
-        verificationStatus: 'approved' as const,
-        isVerified: true
-      };
-      const club = await ClubProfile.create(clubData);
-      createdClubs.push(club);
+      const existingClub = await ClubProfile.findOne({ name: clubData.name });
+      if (existingClub) {
+        // Update the club to ensure it has approved status
+        existingClub.verificationStatus = 'approved';
+        existingClub.isVerified = true;
+        existingClub.status = 'approved';
+        existingClub.approvedAt = new Date();
+        await existingClub.save();
+        logger.info(`   🔄 Updated club status: ${clubData.name}`);
+        createdClubs.push(existingClub);
+        updatedClubCount++;
+      } else {
+        const newClubData = {
+          ...clubData,
+          user: user._id,
+          verificationStatus: 'approved' as const,
+          isVerified: true,
+          status: 'approved' as const,
+          approvedAt: new Date()
+        };
+        const newClub = await ClubProfile.create(newClubData);
+        logger.info(`   ✅ Created club: ${clubData.name}`);
+        createdClubs.push(newClub);
+      }
     }
-    logger.info(`✅ Created ${createdClubs.length} clubs`);
+    logger.info(`✅ Processed ${createdClubs.length} clubs (updated ${updatedClubCount} to approved status)`);
 
-    // Create events (assign to clubs)
-    logger.info('📅 Creating events...');
+    // Create or update events
+    logger.info('\n📅 Creating/updating events...');
     const createdEvents = [];
+    let updatedEventCount = 0;
+    
     for (let i = 0; i < sampleEvents.length; i++) {
+      const eventData = sampleEvents[i];
+      if (!eventData) continue;
+      
       const clubIndex = i % createdClubs.length;
       const club = createdClubs[clubIndex];
       if (!club) continue;
       
-      const eventData = {
-        ...sampleEvents[i],
-        organizer: club._id
-      };
-      const event = await Event.create(eventData);
-      createdEvents.push(event);
+      const existingEvent = await Event.findOne({ 
+        title: eventData.title,
+        organizer: club._id 
+      });
+      
+      if (existingEvent) {
+        // Update the event dates to future dates
+        existingEvent.startTime = eventData.startTime;
+        existingEvent.endTime = eventData.endTime;
+        await existingEvent.save();
+        logger.info(`   🔄 Updated event dates: ${eventData.title}`);
+        createdEvents.push(existingEvent);
+        updatedEventCount++;
+      } else {
+        const newEventData = {
+          ...eventData,
+          organizer: club._id
+        };
+        const newEvent = await Event.create(newEventData);
+        logger.info(`   ✅ Created event: ${eventData.title}`);
+        createdEvents.push(newEvent);
+      }
     }
-    logger.info(`✅ Created ${createdEvents.length} events`);
+    logger.info(`✅ Processed ${createdEvents.length} events (updated ${updatedEventCount} with future dates)`);
 
-    // Create some RSVPs
-    logger.info('✋ Creating RSVPs...');
+    // Create RSVPs (skip if RSVP already exists)
+    logger.info('\n✋ Creating RSVPs...');
     let rsvpCount = 0;
+    let skippedRsvpCount = 0;
+    
     for (const event of createdEvents) {
       // Random number of RSVPs per event (5-20)
       const numRsvps = Math.floor(Math.random() * 16) + 5;
@@ -380,6 +447,17 @@ async function seedDatabase() {
       for (let i = 0; i < Math.min(numRsvps, shuffledUsers.length); i++) {
         const user = shuffledUsers[i];
         if (!user) continue;
+        
+        // Check if RSVP already exists
+        const existingRsvp = await RSVP.findOne({
+          user: user._id,
+          event: event._id
+        });
+        
+        if (existingRsvp) {
+          skippedRsvpCount++;
+          continue;
+        }
         
         const statuses: Array<'going' | 'interested' | 'not_going' | 'waitlist'> = ['going', 'interested', 'not_going', 'waitlist'];
         const randomIndex = Math.floor(Math.random() * statuses.length);
@@ -393,24 +471,237 @@ async function seedDatabase() {
         rsvpCount++;
       }
     }
-    logger.info(`✅ Created ${rsvpCount} RSVPs`);
+    logger.info(`✅ Created ${rsvpCount} new RSVPs (skipped ${skippedRsvpCount} existing)`);
+
+    // Create sample comments with threading
+    logger.info('\n💬 Creating sample comments...');
+    let commentCount = 0;
+    
+    for (const event of createdEvents.slice(0, 5)) { // Add comments to first 5 events
+      // Create root comments
+      const numRootComments = Math.floor(Math.random() * 3) + 2; // 2-4 root comments
+      
+      for (let i = 0; i < numRootComments; i++) {
+        const randomUser = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+        if (!randomUser) continue;
+        
+        const rootCommentContent = [
+          "This looks amazing! Can't wait to attend! 🎉",
+          "Great initiative! Will definitely be there.",
+          "Interesting event. What's the registration process?",
+          "This is exactly what our campus needs!",
+          "Looking forward to this. Any prerequisites?"
+        ][i % 5] || "Great event!";
+        
+        const existingComment = await Comment.findOne({
+          eventId: event._id,
+          content: rootCommentContent,
+          author: randomUser._id
+        });
+        
+        if (existingComment) continue;
+        
+        const rootCommentData = {
+          content: rootCommentContent,
+          author: randomUser._id,
+          eventId: event._id,
+          parentId: null,
+          path: '',
+          depth: 0,
+          upvotes: [],
+          downvotes: [],
+          voteCount: 0
+        };
+        
+        const rootComments = await Comment.create([rootCommentData]);
+        const rootComment = rootComments[0];
+        if (!rootComment) continue;
+        
+        commentCount++;
+        
+        // Add some upvotes to root comment
+        const numUpvotes = Math.floor(Math.random() * 5) + 1;
+        const upvoters = [...createdUsers].sort(() => Math.random() - 0.5).slice(0, numUpvotes);
+        rootComment.upvotes = upvoters.map(u => u._id);
+        rootComment.voteCount = numUpvotes;
+        await rootComment.save();
+        
+        // Create 1-2 replies to this root comment
+        const numReplies = Math.floor(Math.random() * 2) + 1;
+        
+        for (let j = 0; j < numReplies; j++) {
+          const replyUser = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+          if (!replyUser) continue;
+          
+          const replyContent = [
+            "Thanks for your interest! Registration opens next week.",
+            "I agree! This will be a great learning experience.",
+            "No prerequisites needed, everyone is welcome!",
+            "See you there! 👍",
+            "Feel free to reach out if you have any questions."
+          ][j % 5] || "Thanks!";
+          
+          const existingReply = await Comment.findOne({
+            eventId: event._id,
+            content: replyContent,
+            author: replyUser._id,
+            parentId: rootComment._id
+          });
+          
+          if (existingReply) continue;
+          
+          const replyData = {
+            content: replyContent,
+            author: replyUser._id,
+            eventId: event._id,
+            parentId: rootComment._id,
+            path: `${rootComment._id}.`,
+            depth: 1,
+            upvotes: [],
+            downvotes: [],
+            voteCount: 0
+          };
+          
+          const replies = await Comment.create([replyData]);
+          const reply = replies[0];
+          if (!reply) continue;
+          
+          commentCount++;
+          
+          // Add some upvotes to reply
+          const numReplyUpvotes = Math.floor(Math.random() * 3) + 1;
+          const replyUpvoters = [...createdUsers].sort(() => Math.random() - 0.5).slice(0, numReplyUpvotes);
+          reply.upvotes = replyUpvoters.map(u => u._id);
+          reply.voteCount = numReplyUpvotes;
+          await reply.save();
+          
+          // Occasionally create a nested reply (depth 2)
+          if (Math.random() > 0.5) {
+            const nestedUser = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+            if (!nestedUser) continue;
+            
+            const nestedContent = [
+              "That's helpful, thanks!",
+              "Perfect! Count me in.",
+              "Awesome, looking forward to it!",
+              "Great to hear!"
+            ][Math.floor(Math.random() * 4)] || "Thanks!";
+            
+            const existingNested = await Comment.findOne({
+              eventId: event._id,
+              content: nestedContent,
+              author: nestedUser._id,
+              parentId: reply._id
+            });
+            
+            if (existingNested) continue;
+            
+            const nestedData = {
+              content: nestedContent,
+              author: nestedUser._id,
+              eventId: event._id,
+              parentId: reply._id,
+              path: `${rootComment._id}.${reply._id}.`,
+              depth: 2,
+              upvotes: [],
+              downvotes: [],
+              voteCount: Math.floor(Math.random() * 2)
+            };
+            
+            const nestedReplies = await Comment.create([nestedData]);
+            if (nestedReplies[0]) {
+              commentCount++;
+            }
+          }
+        }
+      }
+    }
+    logger.info(`✅ Created ${commentCount} comments with threading`);
+
+    // Create sample notifications
+    logger.info('\n🔔 Creating sample notifications...');
+    let notificationCount = 0;
+    
+    for (const user of createdUsers.slice(0, 5)) { // Add notifications for first 5 users
+      const notificationTypes = [
+        {
+          type: 'event' as const,
+          title: 'RSVP Confirmed',
+          content: 'Your RSVP for HackUni 2026 has been confirmed!',
+          relatedId: createdEvents[0]?._id,
+          relatedType: 'event' as const
+        },
+        {
+          type: 'event' as const,
+          title: 'Event Update',
+          content: 'The venue for Startup Pitch Competition has been changed.',
+          relatedId: createdEvents[1]?._id,
+          relatedType: 'event' as const
+        },
+        {
+          type: 'event' as const,
+          title: 'New Reply',
+          content: 'Someone replied to your comment on AI & Machine Learning Summit.',
+          relatedId: createdEvents[8]?._id,
+          relatedType: 'event' as const
+        }
+      ];
+      
+      for (const notifData of notificationTypes) {
+        // Skip if relatedId is undefined
+        if (!notifData.relatedId) continue;
+        
+        const existingNotif = await Notification.findOne({
+          userId: user._id,
+          type: notifData.type,
+          title: notifData.title
+        });
+        
+        if (existingNotif) continue;
+        
+        await Notification.create({
+          userId: user._id,
+          type: notifData.type,
+          title: notifData.title,
+          content: notifData.content,
+          relatedId: notifData.relatedId,
+          relatedType: notifData.relatedType,
+          read: Math.random() > 0.5 // 50% chance of being read
+        });
+        notificationCount++;
+      }
+    }
+    logger.info(`✅ Created ${notificationCount} notifications`);
+
+    // Get final counts
+    const finalUserCount = await User.countDocuments();
+    const finalClubCount = await ClubProfile.countDocuments();
+    const finalEventCount = await Event.countDocuments();
+    const finalRsvpCount = await RSVP.countDocuments();
+    const finalCommentCount = await Comment.countDocuments();
+    const finalNotificationCount = await Notification.countDocuments();
 
     // Print summary
     logger.info('\n📊 Seeding Summary:');
-    logger.info(`   Users: ${createdUsers.length}`);
-    logger.info(`   Clubs: ${createdClubs.length}`);
-    logger.info(`   Events: ${createdEvents.length}`);
-    logger.info(`   RSVPs: ${rsvpCount}`);
+    logger.info(`   Users: ${finalUserCount} (added ${finalUserCount - existingUserCount})`);
+    logger.info(`   Clubs: ${finalClubCount} (added ${finalClubCount - existingClubCount})`);
+    logger.info(`   Events: ${finalEventCount} (added ${finalEventCount - existingEventCount})`);
+    logger.info(`   RSVPs: ${finalRsvpCount}`);
+    logger.info(`   Comments: ${finalCommentCount}`);
+    logger.info(`   Notifications: ${finalNotificationCount}`);
     
     logger.info('\n🎉 Database seeding completed successfully!');
     logger.info('\n📝 Sample Login Credentials:');
     logger.info('   Email: john.doe@university.edu');
     logger.info('   Password: Password123!');
-    logger.info('\n   (All users have the same password: Password123!)');
+    logger.info('\n   (All sample users have the same password: Password123!)');
 
     process.exit(0);
   } catch (error) {
     logger.error('❌ Error seeding database:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
+      logger.error('Stack trace:', error.stack);
+    }
     process.exit(1);
   }
 }
