@@ -10,7 +10,7 @@ export const connectRedis = async (): Promise<Redis | null> => {
     const redisPassword = process.env.REDIS_PASSWORD;
     const redisDb = parseInt(process.env.REDIS_DB || '0', 10);
 
-    logger.info('🔄 Connecting to Redis...');
+    logger.info('Connecting to Redis...');
     logger.info(`Redis configuration: ${redisHost}:${redisPort}, DB: ${redisDb}`);
 
     const redisOptions: any = {

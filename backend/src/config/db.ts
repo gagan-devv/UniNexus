@@ -29,9 +29,9 @@ export const connectDB = async (): Promise<void> => {
             family: 4, // Use IPv4, skip trying IPv6
         });
         
-        logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);
-        logger.info(`📊 Database: ${conn.connection.name}`);
-        logger.info(`🔗 Connection State: ${conn.connection.readyState}`);
+        logger.info(`MongoDB Connected: ${conn.connection.host}`);
+        logger.info(`Database: ${conn.connection.name}`);
+        logger.info(`Connection State: ${conn.connection.readyState}`);
         
         // Connection event listeners
         mongoose.connection.on('connected', () => {
