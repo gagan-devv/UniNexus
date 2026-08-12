@@ -2,9 +2,10 @@
   "name": "uninexus",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "build:backend": "cd backend && npm run build"
+    "postinstall": "cd frontend && npm install",
+    "build": "cd frontend && npm install && npm run build",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && npm install && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.970.0",
